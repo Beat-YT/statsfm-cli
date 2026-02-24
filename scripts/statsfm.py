@@ -190,7 +190,7 @@ def cmd_profile(api: StatsAPI, args):
     name = u.get("displayName", "?")
     pronouns = u.get("profile", {}).get("pronouns", "")
     bio = u.get("profile", {}).get("bio", "")
-    plus = " [Plus]" if u.get("isPlus") else ""
+    plus = "[Plus]" if u.get("isPlus") else ""
     created = u.get("createdAt", "")[:10]
 
     print(f"{name} ({pronouns}){plus}")
@@ -353,11 +353,14 @@ def cmd_now_playing(api: StatsAPI, args):
     progress = item["progressMs"] // 1000
     duration = track["durationMs"] // 1000
     device = item.get("deviceName", "?")
-    icon = ">" if item.get("isPlaying") else "||"
+    icon = "▶" if item.get("isPlaying") else "⏸"
+    track_id = track.get("id", "?")
+    artist_id = track["artists"][0].get("id", "?") if track.get("artists") else "?"
 
     print(f"{icon} {artists} — {name}")
     print(f"   Album: {album}")
     print(f"   {progress//60}:{progress%60:02d} / {duration//60}:{duration%60:02d}  •  {device}")
+    print(f"   IDs: track={track_id}, artist={artist_id}")
 
 
 def cmd_recent(api: StatsAPI, args):
