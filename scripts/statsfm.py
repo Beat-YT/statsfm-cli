@@ -190,7 +190,7 @@ def cmd_profile(api: StatsAPI, args):
     name = u.get("displayName", "?")
     pronouns = u.get("profile", {}).get("pronouns", "")
     bio = u.get("profile", {}).get("bio", "")
-    plus = " ✓ Plus" if u.get("isPlus") else ""
+    plus = "[Plus]" if u.get("isPlus") else ""
     created = u.get("createdAt", "")[:10]
 
     print(f"{name} ({pronouns}){plus}")
