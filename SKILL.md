@@ -349,6 +349,10 @@ These patterns commonly appear in listening data:
 - Empty results may mean private profile or no data for that period — try `--range lifetime` as fallback
 - Apple Music support is untested
 
+## Contributing
+
+Found a bug or want to add a command? Contributions are welcome — open an issue or PR at https://github.com/Beat-YT/statsfm-cli
+
 ## References
 
 - API Endpoints: [references/api.md](references/api.md)
