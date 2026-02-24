@@ -20,19 +20,7 @@ Comprehensive Python CLI for querying stats.fm API (Spotify listening analytics)
 
 ## Setup
 
-**Set your default username:**
-```bash
-export STATSFM_USER=your_username
-```
-
-If `STATSFM_USER` is not set, you must pass `--user` on every command. If neither is provided, the script exits with code 1 and prints to stderr:
-```
-Error: No user specified. Set STATSFM_USER or pass --user
-```
-
-
-**Note:** Set `STATSFM_USER` in your shell profile (`~/.bashrc`, `~/.zshrc`) to persist across sessions.
-Make sure to also remeber the user id.
+Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provided, the script exits with code 1.
 
 ## Quick Start
 
@@ -112,7 +100,7 @@ All stats commands support both predefined ranges and custom dates:
 
 ### Other Flags
 - `--limit N` / `-l N` - Limit results (default varies by command)
-- `--user USERNAME` / `-u USERNAME` - Query different user (overrides STATSFM_USER)
+- `--user USERNAME` / `-u USERNAME` - Specify the stats.fm username to query
 - `--no-album` - Hide album names in track listings (albums show by default)
 
 ## Usage Examples
@@ -252,7 +240,7 @@ All errors print to **stderr** and exit with **code 1**.
 
 | Scenario | stderr output | What to do |
 |----------|--------------|------------|
-| No user set | `Error: No user specified. Set STATSFM_USER or pass --user` | Set env var or pass `--user` flag |
+| No user set | `Error: No user specified.` | Pass `--user USERNAME` flag |
 | API error (4xx/5xx) | `API Error (code): message` | Check if user exists, profile is public, or ID is valid |
 | Connection failure | `Connection Error: reason` | Retry after a moment, check network |
 | Empty results | No error, just no output | User may be private, or no data for that period — try `--range lifetime` |
@@ -305,10 +293,9 @@ Then use the ID numbers in other commands.
 
 ### Before first use
 
-1. Check if `STATSFM_USER` is set: `echo $STATSFM_USER`
-2. If empty, check TOOLS.md for a configured default username
-3. If still empty, ask the user for their stats.fm username
-4. Set it: `export STATSFM_USER=<username>`
+1. Check memory for a previously stored username
+2. If not found, ask the user for their stats.fm username
+3. Pass it via `--user USERNAME` when needed
 
 ### Workflow patterns
 

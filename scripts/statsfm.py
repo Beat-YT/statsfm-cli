@@ -190,15 +190,43 @@ def cmd_profile(api: StatsAPI, args):
     u = data.get("item", {})
 
     name = u.get("displayName", "?")
+    custom_id = u.get("customId", "")
     pronouns = u.get("profile", {}).get("pronouns", "")
     bio = u.get("profile", {}).get("bio", "")
-    plus = "[Plus]" if u.get("isPlus") else ""
     created = u.get("createdAt", "")[:10]
+    timezone = u.get("timezone", "")
+    recently_active = u.get("recentlyActive", False)
 
-    print(f"{name} ({pronouns}){plus}")
+    badges = []
+    if u.get("isPlus"):
+        badges.append("Plus")
+        plus_since = u.get("plusSinceAt", "")[:10]
+        if plus_since:
+            badges[-1] += f" since {plus_since}"
+    if u.get("isPro"):
+        badges.append("Pro")
+    badge_str = "  [" + " | ".join(badges) + "]" if badges else ""
+
+    handle = f" / {custom_id}" if custom_id and custom_id != name else ""
+    pronoun_str = f" ({pronouns})" if pronouns else ""
+    print(f"{name}{handle}{pronoun_str}{badge_str}")
+
     if bio:
         print(f"Bio: {bio}")
-    print(f"Member since: {created}")
+
+    active_str = "yes" if recently_active else "no"
+    tz_str = f"  •  {timezone}" if timezone else ""
+    print(f"Member since: {created}{tz_str}  •  Recently active: {active_str}")
+
+    spotify = u.get("spotifyAuth")
+    if spotify:
+        sp_name = spotify.get("displayName", "")
+        sp_product = spotify.get("product", "")
+        sp_sync = "✓" if spotify.get("sync") else "✗"
+        sp_imported = "✓" if spotify.get("imported") else "✗"
+        name_str = f"{sp_name}  " if sp_name else ""
+        product_str = f"({sp_product})  " if sp_product else ""
+        print(f"Spotify: {name_str}{product_str}sync={sp_sync}  imported={sp_imported}")
 
 
 def cmd_top_artists(api: StatsAPI, args):
