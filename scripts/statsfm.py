@@ -82,7 +82,7 @@ def get_user_or_exit(args) -> str:
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
-    return user
+    return quote(user, safe='')
 
 
 def get_per_day_stats_with_totals(api: StatsAPI, endpoint: str) -> tuple[Dict[str, Any], int, int]:
@@ -207,6 +207,7 @@ def cmd_top_artists(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -238,6 +239,7 @@ def cmd_top_tracks(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -278,6 +280,7 @@ def cmd_top_albums(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -310,6 +313,7 @@ def cmd_top_genres(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -340,6 +344,7 @@ def cmd_now_playing(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     data = api.request(f"/users/{user}/streams/current")
     item = data.get("item")
@@ -371,6 +376,7 @@ def cmd_recent(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     limit = args.limit or 10
 
@@ -476,6 +482,7 @@ def cmd_stream_stats(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
 
@@ -812,7 +819,7 @@ Set STATSFM_USER environment variable for default user
 
     # Artist stats command
     artist_stats_parser = subparsers.add_parser("artist-stats", help="Show stats for a specific artist")
-    artist_stats_parser.add_argument("artist_id", help="Artist ID")
+    artist_stats_parser.add_argument("artist_id", type=int, help="Artist ID")
     artist_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
     artist_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -846,7 +853,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top tracks from artist command
     top_tracks_artist_parser = subparsers.add_parser("top-tracks-from-artist", help="Show top tracks from a specific artist")
-    top_tracks_artist_parser.add_argument("artist_id", help="Artist ID")
+    top_tracks_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
     top_tracks_artist_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
     top_tracks_artist_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_tracks_artist_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -865,7 +872,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top albums from artist command
     top_albums_artist_parser = subparsers.add_parser("top-albums-from-artist", help="Show top albums from a specific artist")
-    top_albums_artist_parser.add_argument("artist_id", help="Artist ID")
+    top_albums_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
     top_albums_artist_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
     top_albums_artist_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_albums_artist_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
