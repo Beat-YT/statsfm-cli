@@ -49,6 +49,8 @@ class StatsAPI:
                 message = str(e)
 
             print(f"API Error ({e.code}): {message}", file=sys.stderr)
+            if e.code == 404 and "private" in message.lower():
+                print("Please check your stats.fm privacy settings (Settings > Privacy)", file=sys.stderr)
             sys.exit(1)
         except URLError as e:
             print(f"Connection Error: {e.reason}", file=sys.stderr)
