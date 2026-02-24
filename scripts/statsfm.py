@@ -221,13 +221,13 @@ def cmd_top_artists(api: StatsAPI, args):
         streams = item.get("streams") or "?"
         played_ms = item.get("playedMs", 0)
         artist = item["artist"]
-        name = artist["name"][:40]
+        name = artist["name"][:20]
         genres = ", ".join(artist.get("genres", [])[:2])
 
         if played_ms and streams != "?":
-            print(f"{pos:>3}. {name:<40} {streams:>6} plays  ({format_time(played_ms)})  [{genres}]")
+            print(f"{pos:>3}. {name:<20} {streams:>6} plays ({format_time(played_ms) + ')':<9} [{genres}]")
         else:
-            print(f"{pos:>3}. {name:<40} [Plus required for stream stats]  [{genres}]")
+            print(f"{pos:>3}. {name:<20} [Plus required for stream stats]  [{genres}]")
 
 
 def cmd_top_tracks(api: StatsAPI, args):
