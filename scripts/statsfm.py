@@ -125,6 +125,83 @@ def show_monthly_breakdown(days_data: Dict[str, Any], limit: Optional[int] = Non
         print(f"  {month}: {stats['count']:>4} plays  ({format_time(stats['durationMs'])})")
 
 
+def show_daily_breakdown(days_data: Dict[str, Any], limit: Optional[int] = None):
+    """Display daily breakdown from per-day stats"""
+    daily = []
+    for date_str, stats in days_data.items():
+        if stats.get('count', 0) > 0:
+            try:
+                dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                daily.append((dt, stats))
+            except:
+                continue
+
+    daily.sort(key=lambda x: x[0])
+    if limit and limit > 0:
+        daily = daily[-limit:]
+
+    print("Daily breakdown:")
+    for dt, stats in daily:
+        day_name = dt.strftime("%a")
+        date_label = dt.strftime("%Y-%m-%d")
+        print(f"  {date_label} ({day_name}): {stats['count']:>4} plays  ({format_time(stats['durationMs'])})")
+
+
+def show_weekly_breakdown(days_data: Dict[str, Any], limit: Optional[int] = None):
+    """Display weekly breakdown from per-day stats"""
+    from collections import defaultdict
+    import datetime as dt_module
+
+    weekly = defaultdict(lambda: {'count': 0, 'durationMs': 0})
+
+    for date_str, stats in days_data.items():
+        if stats.get('count', 0) > 0:
+            try:
+                dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                week_key = dt.strftime("%G-W%V")
+                week_start = dt - dt_module.timedelta(days=dt.weekday())
+                weekly[week_key]['count'] += stats['count']
+                weekly[week_key]['durationMs'] += stats['durationMs']
+                weekly[week_key]['start'] = min(weekly[week_key].get('start', week_start), week_start)
+            except:
+                continue
+
+    weeks_with_plays = [(wk, stats) for wk, stats in sorted(weekly.items()) if stats['count'] > 0]
+    if limit and limit > 0:
+        weeks_with_plays = weeks_with_plays[-limit:]
+
+    print("Weekly breakdown:")
+    for wk, stats in weeks_with_plays:
+        start = stats.get('start')
+        start_str = start.strftime("%b %d") if start else ""
+        print(f"  {wk} ({start_str}): {stats['count']:>4} plays  ({format_time(stats['durationMs'])})")
+
+
+def show_yearly_breakdown(days_data: Dict[str, Any], limit: Optional[int] = None):
+    """Display yearly breakdown from per-day stats"""
+    from collections import defaultdict
+
+    yearly = defaultdict(lambda: {'count': 0, 'durationMs': 0})
+
+    for date_str, stats in days_data.items():
+        if stats.get('count', 0) > 0:
+            try:
+                dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                year_key = dt.strftime("%Y")
+                yearly[year_key]['count'] += stats['count']
+                yearly[year_key]['durationMs'] += stats['durationMs']
+            except:
+                continue
+
+    years_with_plays = [(yr, stats) for yr, stats in sorted(yearly.items()) if stats['count'] > 0]
+    if limit and limit > 0:
+        years_with_plays = years_with_plays[-limit:]
+
+    print("Yearly breakdown:")
+    for yr, stats in years_with_plays:
+        print(f"  {yr}: {stats['count']:>6} plays ({format_time(stats['durationMs'])})")
+
+
 def parse_date(date_str: str) -> int:
     """Parse date string to Unix timestamp in milliseconds
 
@@ -449,7 +526,15 @@ def cmd_artist_stats(api: StatsAPI, args):
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
     print()
-    show_monthly_breakdown(days, getattr(args, 'limit', None))
+    granularity = getattr(args, 'granularity', 'monthly') or 'monthly'
+    if granularity == 'daily':
+        show_daily_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'weekly':
+        show_weekly_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'yearly':
+        show_yearly_breakdown(days, getattr(args, 'limit', None))
+    else:
+        show_monthly_breakdown(days, getattr(args, 'limit', None))
 
 
 def cmd_track_stats(api: StatsAPI, args):
@@ -478,7 +563,15 @@ def cmd_track_stats(api: StatsAPI, args):
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
     print()
-    show_monthly_breakdown(days, getattr(args, 'limit', None))
+    granularity = getattr(args, 'granularity', 'monthly') or 'monthly'
+    if granularity == 'daily':
+        show_daily_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'weekly':
+        show_weekly_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'yearly':
+        show_yearly_breakdown(days, getattr(args, 'limit', None))
+    else:
+        show_monthly_breakdown(days, getattr(args, 'limit', None))
 
 
 def cmd_album_stats(api: StatsAPI, args):
@@ -496,7 +589,15 @@ def cmd_album_stats(api: StatsAPI, args):
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
     print()
-    show_monthly_breakdown(days, getattr(args, 'limit', None))
+    granularity = getattr(args, 'granularity', 'monthly') or 'monthly'
+    if granularity == 'daily':
+        show_daily_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'weekly':
+        show_weekly_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'yearly':
+        show_yearly_breakdown(days, getattr(args, 'limit', None))
+    else:
+        show_monthly_breakdown(days, getattr(args, 'limit', None))
 
 
 def cmd_stream_stats(api: StatsAPI, args):
@@ -825,7 +926,8 @@ Set STATSFM_USER environment variable for default user
     artist_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
     artist_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
-    artist_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N months")
+    artist_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
+    artist_stats_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="monthly", help="Breakdown granularity (default: monthly)")
     artist_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
     # Track stats command
@@ -834,7 +936,8 @@ Set STATSFM_USER environment variable for default user
     track_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
     track_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     track_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
-    track_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N months")
+    track_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
+    track_stats_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="monthly", help="Breakdown granularity (default: monthly)")
     track_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
     # Album stats command
@@ -843,7 +946,8 @@ Set STATSFM_USER environment variable for default user
     album_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
     album_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     album_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
-    album_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N months")
+    album_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
+    album_stats_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="monthly", help="Breakdown granularity (default: monthly)")
     album_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
     # Stream stats command
