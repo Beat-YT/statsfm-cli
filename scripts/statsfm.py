@@ -49,6 +49,8 @@ class StatsAPI:
                 message = str(e)
 
             print(f"API Error ({e.code}): {message}", file=sys.stderr)
+            if e.code == 404 and "private" in message.lower():
+                print("Please check your stats.fm privacy settings (Settings > Privacy)", file=sys.stderr)
             sys.exit(1)
         except URLError as e:
             print(f"Connection Error: {e.reason}", file=sys.stderr)
@@ -80,7 +82,7 @@ def get_user_or_exit(args) -> str:
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
-    return user
+    return quote(user, safe='')
 
 
 def get_per_day_stats_with_totals(api: StatsAPI, endpoint: str) -> tuple[Dict[str, Any], int, int]:
@@ -188,15 +190,43 @@ def cmd_profile(api: StatsAPI, args):
     u = data.get("item", {})
 
     name = u.get("displayName", "?")
+    custom_id = u.get("customId", "")
     pronouns = u.get("profile", {}).get("pronouns", "")
     bio = u.get("profile", {}).get("bio", "")
-    plus = " [Plus]" if u.get("isPlus") else ""
     created = u.get("createdAt", "")[:10]
+    timezone = u.get("timezone", "")
+    recently_active = u.get("recentlyActive", False)
 
-    print(f"{name} ({pronouns}){plus}")
+    badges = []
+    if u.get("isPlus"):
+        badges.append("Plus")
+        plus_since = u.get("plusSinceAt", "")[:10]
+        if plus_since:
+            badges[-1] += f" since {plus_since}"
+    if u.get("isPro"):
+        badges.append("Pro")
+    badge_str = "  [" + " | ".join(badges) + "]" if badges else ""
+
+    handle = f" / {custom_id}" if custom_id and custom_id != name else ""
+    pronoun_str = f" ({pronouns})" if pronouns else ""
+    print(f"{name}{handle}{pronoun_str}{badge_str}")
+
     if bio:
         print(f"Bio: {bio}")
-    print(f"Member since: {created}")
+
+    active_str = "yes" if recently_active else "no"
+    tz_str = f"  •  {timezone}" if timezone else ""
+    print(f"Member since: {created}{tz_str}  •  Recently active: {active_str}")
+
+    spotify = u.get("spotifyAuth")
+    if spotify:
+        sp_name = spotify.get("displayName", "")
+        sp_product = spotify.get("product", "")
+        sp_sync = "✓" if spotify.get("sync") else "✗"
+        sp_imported = "✓" if spotify.get("imported") else "✗"
+        name_str = f"{sp_name}  " if sp_name else ""
+        product_str = f"({sp_product})  " if sp_product else ""
+        print(f"Spotify: {name_str}{product_str}sync={sp_sync}  imported={sp_imported}")
 
 
 def cmd_top_artists(api: StatsAPI, args):
@@ -205,6 +235,7 @@ def cmd_top_artists(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -223,11 +254,12 @@ def cmd_top_artists(api: StatsAPI, args):
         artist = item["artist"]
         name = artist["name"][:20]
         genres = ", ".join(artist.get("genres", [])[:2])
+        aid = artist.get("id", "?")
 
         if played_ms and streams != "?":
-            print(f"{pos:>3}. {name:<20} {streams:>6} plays ({format_time(played_ms) + ')':<9} [{genres}]")
+            print(f"{pos:>3}. {name:<20} {streams:>6} plays ({format_time(played_ms) + ')':<9} [{genres}]  #{aid}")
         else:
-            print(f"{pos:>3}. {name:<20} [Plus required for stream stats]  [{genres}]")
+            print(f"{pos:>3}. {name:<20} [Plus required for stream stats]  [{genres}]  #{aid}")
 
 
 def cmd_top_tracks(api: StatsAPI, args):
@@ -236,6 +268,7 @@ def cmd_top_tracks(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -254,20 +287,21 @@ def cmd_top_tracks(api: StatsAPI, args):
         track = item["track"]
         name = track["name"][:35]
         artist = track["artists"][0]["name"][:25]
+        tid = track.get("id", "?")
 
         if not args.album:
             # Hide album
             if played_ms and streams != "?":
-                print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>5} plays  ({format_time(played_ms)})")
+                print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>5} plays  ({format_time(played_ms)})  #{tid}")
             else:
-                print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]")
+                print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]  #{tid}")
         else:
             # Show album (default)
             album = get_album_name(track)
             if played_ms and streams != "?":
-                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} {streams:>5} plays  ({format_time(played_ms)})")
+                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} {streams:>5} plays  ({format_time(played_ms)})  #{tid}")
             else:
-                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} [Plus required]")
+                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} [Plus required]  #{tid}")
 
 
 def cmd_top_albums(api: StatsAPI, args):
@@ -276,6 +310,7 @@ def cmd_top_albums(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -295,11 +330,12 @@ def cmd_top_albums(api: StatsAPI, args):
         name = album["name"][:35]
         artists = album.get("artists", [])
         artist = artists[0]["name"][:25] if artists else "?"
+        alb_id = album.get("id", "?")
 
         if played_ms and streams != "?":
-            print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>6} plays  ({format_time(played_ms)})")
+            print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>6} plays  ({format_time(played_ms)})  #{alb_id}")
         else:
-            print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]")
+            print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]  #{alb_id}")
 
 
 def cmd_top_genres(api: StatsAPI, args):
@@ -308,6 +344,7 @@ def cmd_top_genres(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
@@ -338,6 +375,7 @@ def cmd_now_playing(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     data = api.request(f"/users/{user}/streams/current")
     item = data.get("item")
@@ -353,11 +391,14 @@ def cmd_now_playing(api: StatsAPI, args):
     progress = item["progressMs"] // 1000
     duration = track["durationMs"] // 1000
     device = item.get("deviceName", "?")
-    icon = ">" if item.get("isPlaying") else "||"
+    icon = "▶" if item.get("isPlaying") else "⏸"
+    track_id = track.get("id", "?")
+    artist_id = track["artists"][0].get("id", "?") if track.get("artists") else "?"
 
     print(f"{icon} {artists} — {name}")
     print(f"   Album: {album}")
     print(f"   {progress//60}:{progress%60:02d} / {duration//60}:{duration%60:02d}  •  {device}")
+    print(f"   IDs: track={track_id}, artist={artist_id}")
 
 
 def cmd_recent(api: StatsAPI, args):
@@ -366,6 +407,7 @@ def cmd_recent(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     limit = args.limit or 10
 
@@ -471,6 +513,7 @@ def cmd_stream_stats(api: StatsAPI, args):
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
         sys.exit(1)
+    user = quote(user, safe='')
 
     date_params = build_date_params(args)
 
@@ -807,7 +850,7 @@ Set STATSFM_USER environment variable for default user
 
     # Artist stats command
     artist_stats_parser = subparsers.add_parser("artist-stats", help="Show stats for a specific artist")
-    artist_stats_parser.add_argument("artist_id", help="Artist ID")
+    artist_stats_parser.add_argument("artist_id", type=int, help="Artist ID")
     artist_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
     artist_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -841,7 +884,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top tracks from artist command
     top_tracks_artist_parser = subparsers.add_parser("top-tracks-from-artist", help="Show top tracks from a specific artist")
-    top_tracks_artist_parser.add_argument("artist_id", help="Artist ID")
+    top_tracks_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
     top_tracks_artist_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
     top_tracks_artist_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_tracks_artist_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -860,7 +903,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top albums from artist command
     top_albums_artist_parser = subparsers.add_parser("top-albums-from-artist", help="Show top albums from a specific artist")
-    top_albums_artist_parser.add_argument("artist_id", help="Artist ID")
+    top_albums_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
     top_albums_artist_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
     top_albums_artist_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_albums_artist_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
