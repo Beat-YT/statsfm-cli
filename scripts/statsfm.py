@@ -202,6 +202,31 @@ def show_yearly_breakdown(days_data: Dict[str, Any], limit: Optional[int] = None
         print(f"  {yr}: {stats['count']:>6} plays ({format_time(stats['durationMs'])})")
 
 
+def show_yearly_breakdown(days_data: Dict[str, Any], limit: Optional[int] = None):
+    """Display yearly breakdown from per-day stats"""
+    from collections import defaultdict
+
+    yearly = defaultdict(lambda: {'count': 0, 'durationMs': 0})
+
+    for date_str, stats in days_data.items():
+        if stats.get('count', 0) > 0:
+            try:
+                dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                year_key = dt.strftime("%Y")
+                yearly[year_key]['count'] += stats['count']
+                yearly[year_key]['durationMs'] += stats['durationMs']
+            except:
+                continue
+
+    years_with_plays = [(yr, stats) for yr, stats in sorted(yearly.items()) if stats['count'] > 0]
+    if limit and limit > 0:
+        years_with_plays = years_with_plays[-limit:]
+
+    print("Yearly breakdown:")
+    for yr, stats in years_with_plays:
+        print(f"  {yr}: {stats['count']:>6} plays ({format_time(stats['durationMs'])})")
+
+
 def parse_date(date_str: str) -> int:
     """Parse date string to Unix timestamp in milliseconds
 
