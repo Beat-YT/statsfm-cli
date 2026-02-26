@@ -254,11 +254,12 @@ def cmd_top_artists(api: StatsAPI, args):
         artist = item["artist"]
         name = artist["name"][:20]
         genres = ", ".join(artist.get("genres", [])[:2])
+        aid = artist.get("id", "?")
 
         if played_ms and streams != "?":
-            print(f"{pos:>3}. {name:<20} {streams:>6} plays ({format_time(played_ms) + ')':<9} [{genres}]")
+            print(f"{pos:>3}. {name:<20} {streams:>6} plays ({format_time(played_ms) + ')':<9} [{genres}]  #{aid}")
         else:
-            print(f"{pos:>3}. {name:<20} [Plus required for stream stats]  [{genres}]")
+            print(f"{pos:>3}. {name:<20} [Plus required for stream stats]  [{genres}]  #{aid}")
 
 
 def cmd_top_tracks(api: StatsAPI, args):
@@ -286,20 +287,21 @@ def cmd_top_tracks(api: StatsAPI, args):
         track = item["track"]
         name = track["name"][:35]
         artist = track["artists"][0]["name"][:25]
+        tid = track.get("id", "?")
 
         if not args.album:
             # Hide album
             if played_ms and streams != "?":
-                print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>5} plays  ({format_time(played_ms)})")
+                print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>5} plays  ({format_time(played_ms)})  #{tid}")
             else:
-                print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]")
+                print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]  #{tid}")
         else:
             # Show album (default)
             album = get_album_name(track)
             if played_ms and streams != "?":
-                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} {streams:>5} plays  ({format_time(played_ms)})")
+                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} {streams:>5} plays  ({format_time(played_ms)})  #{tid}")
             else:
-                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} [Plus required]")
+                print(f"{pos:>3}. {name:<35} {artist:<25} {album:<30} [Plus required]  #{tid}")
 
 
 def cmd_top_albums(api: StatsAPI, args):
@@ -328,11 +330,12 @@ def cmd_top_albums(api: StatsAPI, args):
         name = album["name"][:35]
         artists = album.get("artists", [])
         artist = artists[0]["name"][:25] if artists else "?"
+        alb_id = album.get("id", "?")
 
         if played_ms and streams != "?":
-            print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>6} plays  ({format_time(played_ms)})")
+            print(f"{pos:>3}. {name:<35} {artist:<25} {streams:>6} plays  ({format_time(played_ms)})  #{alb_id}")
         else:
-            print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]")
+            print(f"{pos:>3}. {name:<35} {artist:<25} [Plus required]  #{alb_id}")
 
 
 def cmd_top_genres(api: StatsAPI, args):
