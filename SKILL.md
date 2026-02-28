@@ -1,6 +1,6 @@
 ---
 name: statsfm
-description: Query stats.fm (Spotify listening stats) via the public REST API. Provides music listening data, Spotify stats, top artists/tracks/albums, currently playing, streaming history, genre breakdowns, and music taste analysis. No auth needed for public profiles.
+description: Music data tool powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts. With a stats.fm username, also query personal listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
 ---
 
 # stats.fm CLI
