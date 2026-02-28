@@ -56,6 +56,12 @@ Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provide
 - `album-stats <album_id>` - Detailed stats for specific album (with monthly breakdown)
 - `stream-stats` - Overall streaming statistics
 
+### Lookups
+- `album <album_id>` - Album info and full tracklist (release date, label, genres, tracks with duration and [E] tags)
+- `artist-albums <artist_id>` - All albums/singles by artist, grouped by type (Albums, Singles & EPs, Compilations), newest first. Deduped by ID, 15 per section by default, shows "(N more)" overflow.
+  - `--type album|single|all` (default: all)
+  - `--limit N` - Items per section
+
 ### Drill-Down
 - `top-tracks-from-artist <artist_id>` - Top tracks from specific artist
 - `top-tracks-from-album <album_id>` - Top tracks from specific album
@@ -99,7 +105,7 @@ All stats commands support both predefined ranges and custom dates:
 ```
 
 ### Other Flags
-- `--limit N` / `-l N` - Limit results (default varies by command)
+- `--limit N` / `-l N` - Limit results (default: 15)
 - `--user USERNAME` / `-u USERNAME` - Specify the stats.fm username to query
 - `--no-album` - Hide album names in track listings (albums show by default)
 
@@ -161,6 +167,19 @@ All stats commands support both predefined ranges and custom dates:
 
 # Check a specific album's stats
 ./statsfm.py album-stats 16211936 --start 2025
+
+# Browse her full discography
+./statsfm.py artist-albums 39118
+# Albums grouped by type, newest first, 15 per section
+
+# Just her albums (no singles)
+./statsfm.py artist-albums 39118 --type album
+
+# Look up a specific album's tracklist
+./statsfm.py album 1365235
+# Shows: Life Support by Madison Beer  #1365235
+#   2021-02-25  |  17 tracks  |  Epic/Sing It Loud  |  Pop, Music
+#   + full tracklist with durations and [E] tags
 ```
 
 ### Charts
@@ -275,72 +294,74 @@ Then use the ID numbers in other commands.
 5. **Albums show by default:** Match the stats.fm UI behavior (album art is prominent)
 6. **Monthly breakdowns:** All stats commands show month-by-month progression automatically
 
-## Tips for AI Agents
+## For AI Agents
 
-### Quick Reference — Intent → Command
+### Setup
 
-| User wants | Command | Key flags |
-|-----------|---------|-----------|
-| Play count for a track | `track-stats <id>` | `--start/--end` for period |
-| Play count for an artist | `artist-stats <id>` | `--start/--end` for period |
-| Rankings / top lists | `top-tracks`, `top-artists`, `top-albums`, `top-genres` | `--range` or `--start/--end`, `--limit` |
-| What's playing now | `now-playing` | |
-| Recent listening | `recent` | `--limit` |
-| Timeline / listening history | `artist-stats` or `track-stats` | Monthly breakdown is automatic |
-| Find an artist/track/album ID | `search <query>` | `--type artist\|track\|album` |
-| Deep dive on an artist | `search` → `artist-stats` → `top-tracks-from-artist` | Chain commands |
-| Global charts | `charts-top-tracks`, `charts-top-artists` | `--range`, `--limit` |
+Check your memory for a stored stats.fm username. If you don't have one, ask. Every command that touches user data needs `--user USERNAME`.
 
-### Before first use
+### What This Tool Is For
 
-1. Check memory for a previously stored username
-2. If not found, ask the user for their stats.fm username
-3. Pass it via `--user USERNAME` when needed
+This gives you direct access to someone's music listening history. That's personal. The value isn't in dumping tables of data — it's in showing someone something about themselves they didn't already know.
 
-### Workflow patterns
+When someone asks about their music, they're not asking for a database query. They want to understand their own taste, revisit a memory, or discover a pattern. Your job is to connect the data to something meaningful.
 
-1. **Discovery → Deep dive:** `search` → get ID → `artist-stats` → `top-tracks-from-artist` → specific `track-stats`
-2. **Timeline analysis:** Use monthly breakdowns from stats commands to trace listening evolution
-3. **Comparison:** Run same command with different date ranges to show changes over time
-4. **Era detection:** Check monthly stats for sudden spikes — indicates when an artist entered heavy rotation
+### How to Think About It
 
-### Best practices
+**Someone mentions an artist:** They have a relationship with that artist. Find out what it looks like — how long they've been listening, what era they discovered them, which tracks stuck. `search` → `artist-stats` tells the story. `top-tracks-from-artist` shows what resonated. `artist-albums` gives context on the discography. Don't just list all three — read the first result and decide what's interesting before going deeper.
 
-- Use custom date ranges (`--start/--end`) for specific periods — more precise than predefined ranges
-- When user says "this year" or a specific year, convert to `--start YYYY --end YYYY+1`
-- Monthly breakdowns are automatic on stats commands — use them to identify peaks and trends
-- Always `search` first to get IDs — don't memorize or hardcode artist/track IDs
-- Albums show by default in track listings — use `--no-album` for compact output
+**Someone asks about their taste:** They want a mirror, not a spreadsheet. `top-artists` and `top-genres` across different time ranges reveal how their taste is shifting. Compare `--range weeks` to `--range months` to `--range lifetime` — the differences are the story. A lifetime #1 that's not in the top 20 this month is more interesting than the current #1.
 
-### Interpreting patterns
+**Someone mentions an album:** They want to know about it or remember it. `album` gives the tracklist and metadata. If they also have listening data, `album-stats` shows when and how much they played it. Monthly breakdowns reveal whether it was a one-week obsession or a slow burn.
 
-These patterns commonly appear in listening data:
+**Someone asks what they're listening to:** `now-playing` is the literal answer. But `recent` with the last 10-15 tracks shows the session's mood. If there's a pattern (same artist, same genre), name it.
 
-- **Heavy rotation:** Sustained high monthly play counts over multiple months
-- **Spike/drop:** Sudden increase followed by decline — often indicates album release or trend
-- **Displacement:** One artist's numbers drop as another's rise — taste shift
-- **Deep catalog:** Older album tracks appearing in recent top plays — discography exploration
-- **Gateway track:** First track in timeline that led to broader artist discovery
+### Date Ranges
 
-### Presenting data
+When the user says a time period, translate it:
+- "This year" → `--start 2025 --end 2026`
+- "Last summer" → `--start 2025-06 --end 2025-09`
+- "When did I start listening to X" → `artist-stats <id>` with `--range lifetime` — the monthly breakdown shows the first month
 
-- Highlight peaks and trends in monthly breakdowns
-- Contextualize: convert minutes to hours, compare to daily averages
-- Show progression across periods when relevant
-- Call out notable facts: high single-month counts, rapid rises
+### Reading the Data
 
-### Edge cases
+The numbers tell stories. Look for these:
 
-- Free users see `[Plus required]` for play counts — acknowledge gracefully, show what's available
-- Some searches return duplicates — use the first result
-- Empty results may mean private profile or no data for that period — try `--range lifetime` as fallback
-- Apple Music support is untested
+- **A month with 200+ plays** — that artist owned their life for a while. Say so.
+- **First appearance in monthly breakdown** — that's when they discovered the artist. Context: was an album released that month?
+- **Sudden drop after months of plays** — something changed. New obsession displaced it, or they moved on.
+- **Old tracks in recent plays** — nostalgia trip or rediscovery. Worth noting.
+- **One track with 5x the plays of the next** — that's their song. The one they put on repeat.
 
-## Contributing
+Don't just report numbers. "You played 847 tracks" means nothing. "You listened to Madison Beer for 30 hours in March — that's almost an hour a day" means something.
 
-Found a bug or want to add a command? Contributions are welcome — open an issue or PR at https://github.com/Beat-YT/statsfm-cli
+### Command Reference
+
+| Intent | Command | Key flags |
+|--------|---------|-----------|
+| Play count for a track | `track-stats <id>` | `--start/--end`, `--granularity` |
+| Play count for an artist | `artist-stats <id>` | `--start/--end`, `--granularity` |
+| Rankings | `top-tracks`, `top-artists`, `top-albums`, `top-genres` | `--range`, `--start/--end`, `--limit` |
+| Currently playing | `now-playing` | | 
+| Recent tracks | `recent` | `--limit` |
+| Artist's discography | `artist-albums <id>` | `--limit` |
+| Album tracklist | `album <id>` | |
+| Top tracks by artist | `top-tracks-from-artist <id>` | `--range`, `--limit` |
+| Top tracks on album | `top-tracks-from-album <id>` | `--range`, `--limit` |
+| Top albums by artist | `top-albums-from-artist <id>` | `--range`, `--limit` |
+| Global charts | `charts-top-tracks`, `charts-top-artists`, `charts-top-albums` | `--range`, `--limit` |
+| Find IDs | `search <query>` | `--type artist\|track\|album` |
+| Overall stats | `stream-stats` | `--range`, `--start/--end` |
+
+### Edge Cases
+
+- **Free users:** Play counts are not available for top tracks — rankings and breakdowns still work, lead with those
+- **Empty results:** Try `--range lifetime` as fallback. Could also be a private profile.
+- **Search duplicates:** Use the first result
+- **Apple Music:** Untested, may have gaps
+
 
 ## References
-
+- Github Repo: [statsfm/statsfm-cli](https://github.com/Beat-YT/statsfm-cli)
 - API Endpoints: [references/api.md](references/api.md)
 - Official JS Client: [statsfm/statsfm.js](https://github.com/statsfm/statsfm.js)
