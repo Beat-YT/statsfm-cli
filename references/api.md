@@ -104,6 +104,13 @@ Per-date stats for an album.
 ### GET `/users/{userId}/streams/albums/{albumId}/stats/per-day`
 Per-day breakdown for an album.
 
+### GET `/users/{userId}/streams/tracks/list`
+Batch stream history for multiple tracks. Params: `ids` (comma-separated track IDs), `range` or `before`/`after`, `limit`, `offset`.
+
+### GET `/users/{userId}/streams/tracks/list/stats`
+Batch stats for multiple tracks. Params: `ids` (comma-separated track IDs), `range` or `before`/`after`.
+Returns: Record keyed by track ID → StreamStats[].
+
 ### GET `/users/{userId}/top/artists/{artistId}/tracks`
 Top tracks by a specific artist for this user.
 
@@ -181,6 +188,19 @@ Batch album lookup.
 
 ### GET `/albums/{id}/tracks`
 Album tracklist.
+
+---
+
+## Records
+
+### GET `/records/artists/{recordId}`
+Get a specific artist record (milestone) by record ID.
+
+### GET `/records/artists?ids=1,2,3`
+Batch lookup of artist records by IDs.
+
+### GET `/records/artists/{recordId}/history`
+History of a specific artist record.
 
 ---
 
