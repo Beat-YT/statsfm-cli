@@ -482,7 +482,7 @@ def cmd_recent(api: StatsAPI, args):
         sys.exit(1)
     user = quote(user, safe='')
 
-    limit = args.limit or 10
+    limit = args.limit or DEFAULT_LIMIT
 
     data = api.request(f"/users/{user}/streams/recent?limit={limit}")
     items = data.get("items", [])
@@ -729,7 +729,7 @@ def cmd_top_albums_from_artist(api: StatsAPI, args):
 def cmd_charts_top_tracks(api: StatsAPI, args):
     """Show global top tracks chart"""
     range_val = args.range or "today"
-    limit = args.limit or 15
+    limit = args.limit or DEFAULT_LIMIT
 
     data = api.request(f"/charts/top/tracks?range={range_val}")
     items = data.get("items", [])[:limit]  # Apply limit in software
@@ -755,7 +755,7 @@ def cmd_charts_top_tracks(api: StatsAPI, args):
 def cmd_charts_top_artists(api: StatsAPI, args):
     """Show global top artists chart"""
     range_val = args.range or "today"
-    limit = args.limit or 15
+    limit = args.limit or DEFAULT_LIMIT
 
     data = api.request(f"/charts/top/artists?range={range_val}")
     items = data.get("items", [])[:limit]
@@ -776,7 +776,7 @@ def cmd_charts_top_artists(api: StatsAPI, args):
 def cmd_charts_top_albums(api: StatsAPI, args):
     """Show global top albums chart"""
     range_val = args.range or "today"
-    limit = args.limit or 15
+    limit = args.limit or DEFAULT_LIMIT
 
     data = api.request(f"/charts/top/albums?range={range_val}")
     items = data.get("items", [])[:limit]
@@ -818,7 +818,7 @@ def cmd_artist_albums(api: StatsAPI, args):
 
     type_order = [("album", "Albums"), ("single", "Singles & EPs"), ("compilation", "Compilations")]
     show_types = type_order if args.type == "all" else [(args.type, dict(type_order)[args.type])]
-    limit = args.limit or 15
+    limit = args.limit or DEFAULT_LIMIT
 
     first = True
     for key, label in show_types:
