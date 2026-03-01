@@ -16,6 +16,30 @@ from urllib.error import HTTPError, URLError
 from datetime import datetime
 
 
+def get_local_timezone() -> str:
+    """Detect the system's IANA timezone name (e.g. Europe/Amsterdam).
+    Falls back to UTC if detection fails."""
+    tz = os.environ.get("TZ", "").strip()
+    if tz:
+        return tz
+    try:
+        with open("/etc/timezone") as f:
+            tz = f.read().strip()
+            if tz:
+                return tz
+    except OSError:
+        pass
+    try:
+        link = os.path.realpath("/etc/localtime")
+        marker = "/zoneinfo/"
+        idx = link.find(marker)
+        if idx != -1:
+            return link[idx + len(marker):]
+    except OSError:
+        pass
+    return "UTC"
+
+
 BASE_URL = "https://api.stats.fm/api/v1"
 DEFAULT_USER = os.environ.get("STATSFM_USER", "")
 DEFAULT_RANGE = "weeks"
@@ -312,8 +336,8 @@ def cmd_profile(api: StatsAPI, args):
     if spotify:
         sp_name = spotify.get("displayName", "")
         sp_product = spotify.get("product", "")
-        sp_sync = "✓" if spotify.get("sync") else "✗"
-        sp_imported = "✓" if spotify.get("imported") else "✗"
+        sp_sync = "yes" if spotify.get("sync") else "no"
+        sp_imported = "yes" if spotify.get("imported") else "no"
         name_str = f"{sp_name}  " if sp_name else ""
         product_str = f"({sp_product})  " if sp_product else ""
         print(f"Spotify: {name_str}{product_str}sync={sp_sync}  imported={sp_imported}")
@@ -468,8 +492,8 @@ def cmd_now_playing(api: StatsAPI, args):
     track_id = track.get("id", "?")
     artist_id = track["artists"][0].get("id", "?") if track.get("artists") else "?"
 
-    print(f"{icon} {artists} — {name}")
-    print(f"   Album: {album}")
+    print(f"{icon} {name}")
+    print(f"   by {artists}  •  {album}")
     print(f"   {progress//60}:{progress%60:02d} / {duration//60}:{duration%60:02d}  •  {device}")
     print(f"   IDs: track={track_id}, artist={artist_id}")
 
@@ -497,7 +521,7 @@ def cmd_recent(api: StatsAPI, args):
         end_time = stream.get("endTime", "")
         if end_time:
             try:
-                dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                dt = datetime.fromisoformat(end_time.replace("Z", "+00:00")).astimezone()
                 time_str = dt.strftime("%H:%M")
             except:
                 time_str = "??:??"
@@ -525,7 +549,7 @@ def cmd_artist_stats(api: StatsAPI, args):
 
     date_params = build_date_params(args, "lifetime")
     days, total_count, total_ms = get_per_day_stats_with_totals(
-        api, f"/users/{user}/streams/artists/{args.artist_id}/stats/per-day?timeZone=UTC&{date_params}"
+        api, f"/users/{user}/streams/artists/{args.artist_id}/stats/per-day?timeZone={quote(get_local_timezone(), safe='')}&{date_params}"
     )
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
@@ -562,7 +586,7 @@ def cmd_track_stats(api: StatsAPI, args):
 
     date_params = build_date_params(args, "lifetime")
     days, total_count, total_ms = get_per_day_stats_with_totals(
-        api, f"/users/{user}/streams/tracks/{args.track_id}/stats/per-day?timeZone=UTC&{date_params}"
+        api, f"/users/{user}/streams/tracks/{args.track_id}/stats/per-day?timeZone={quote(get_local_timezone(), safe='')}&{date_params}"
     )
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
@@ -588,7 +612,7 @@ def cmd_album_stats(api: StatsAPI, args):
 
     date_params = build_date_params(args, "lifetime")
     days, total_count, total_ms = get_per_day_stats_with_totals(
-        api, f"/users/{user}/streams/albums/{args.album_id}/stats/per-day?timeZone=UTC&{date_params}"
+        api, f"/users/{user}/streams/albums/{args.album_id}/stats/per-day?timeZone={quote(get_local_timezone(), safe='')}&{date_params}"
     )
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
@@ -637,93 +661,64 @@ def cmd_stream_stats(api: StatsAPI, args):
             print(f"Unique: {', '.join(parts)}")
 
 
-def cmd_top_tracks_from_artist(api: StatsAPI, args):
-    """Show top tracks from a specific artist"""
-    user = get_user_or_exit(args)
-
-    if not args.artist_id:
-        print("Error: Artist ID required", file=sys.stderr)
-        sys.exit(1)
-
-    date_params = build_date_params(args)
-    limit = args.limit or DEFAULT_LIMIT
-
-    data = api.request(f"/users/{user}/top/artists/{args.artist_id}/tracks?{date_params}&limit={limit}")
+def show_top_items(api: StatsAPI, endpoint: str, item_key: str, limit: int, show_album=False):
+    """Shared logic for top-tracks-from-artist, top-tracks-from-album, top-albums-from-artist"""
+    data = api.request(endpoint)
     items = data.get("items", [])
 
     if not items:
         print("No data found.")
         return
 
+    total = len(items)
+    items = items[:limit]
     has_stats = items[0].get("playedMs", 0) and (items[0].get("streams") or "?") != "?"
     rows = []
     for item in items:
-        track = item["track"]
-        row = [f"{item['position']:>3}.", track["name"]]
-        if args.album:
-            row.append(get_album_name(track))
+        entry = item[item_key]
+        row = [f"{item['position']:>3}.", entry["name"]]
+        if show_album:
+            row.append(get_album_name(entry))
         if has_stats:
             row += [f"{item['streams']} plays", f"({format_time(item['playedMs'])})"]
         rows.append(row)
     print_table(rows)
+    remaining = total - limit
+    if remaining > 0:
+        print(f"  ({remaining} more)")
+
+
+def cmd_top_tracks_from_artist(api: StatsAPI, args):
+    """Show top tracks from a specific artist"""
+    user = get_user_or_exit(args)
+    if not args.artist_id:
+        print("Error: Artist ID required", file=sys.stderr)
+        sys.exit(1)
+    date_params = build_date_params(args)
+    limit = args.limit or DEFAULT_LIMIT
+    show_top_items(api, f"/users/{user}/top/artists/{args.artist_id}/tracks?{date_params}", "track", limit, show_album=args.album)
 
 
 def cmd_top_tracks_from_album(api: StatsAPI, args):
     """Show top tracks from a specific album"""
     user = get_user_or_exit(args)
-
     if not args.album_id:
         print("Error: Album ID required", file=sys.stderr)
         sys.exit(1)
-
     date_params = build_date_params(args)
-    limit = args.limit or DEFAULT_LIMIT
-
-    data = api.request(f"/users/{user}/top/albums/{args.album_id}/tracks?{date_params}&limit={limit}")
-    items = data.get("items", [])
-
-    if not items:
-        print("No data found.")
-        return
-
-    has_stats = items[0].get("playedMs", 0) and (items[0].get("streams") or "?") != "?"
-    rows = []
-    for item in items:
-        track = item["track"]
-        row = [f"{item['position']:>3}.", track["name"]]
-        if has_stats:
-            row += [f"{item['streams']} plays", f"({format_time(item['playedMs'])})"]
-        rows.append(row)
-    print_table(rows)
+    limit = args.limit or 100
+    show_top_items(api, f"/users/{user}/top/albums/{args.album_id}/tracks?{date_params}", "track", limit)
 
 
 def cmd_top_albums_from_artist(api: StatsAPI, args):
     """Show top albums from a specific artist"""
     user = get_user_or_exit(args)
-
     if not args.artist_id:
         print("Error: Artist ID required", file=sys.stderr)
         sys.exit(1)
-
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
-
-    data = api.request(f"/users/{user}/top/artists/{args.artist_id}/albums?{date_params}&limit={limit}")
-    items = data.get("items", [])
-
-    if not items:
-        print("No data found.")
-        return
-
-    has_stats = items[0].get("playedMs", 0) and (items[0].get("streams") or "?") != "?"
-    rows = []
-    for item in items:
-        album = item["album"]
-        row = [f"{item['position']:>3}.", album["name"]]
-        if has_stats:
-            row += [f"{item['streams']} plays", f"({format_time(item['playedMs'])})"]
-        rows.append(row)
-    print_table(rows)
+    show_top_items(api, f"/users/{user}/top/artists/{args.artist_id}/albums?{date_params}", "album", limit)
 
 
 def cmd_charts_top_tracks(api: StatsAPI, args):

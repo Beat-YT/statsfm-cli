@@ -111,94 +111,24 @@ All stats commands support both predefined ranges and custom dates:
 
 ## Usage Examples
 
-### Basic Queries
 ```bash
-# Your top 10 tracks this week (default range)
-./statsfm.py top-tracks --limit 10
-
-# Top 10 artists of all time
-./statsfm.py top-artists --range lifetime --limit 10
-
-# What's playing now
-./statsfm.py now-playing
-
-# Last 15 tracks played
-./statsfm.py recent --limit 15
-```
-
-### Using Predefined Ranges
-```bash
-# Today's top tracks
-./statsfm.py top-tracks --range today --limit 20
-
-# Last 4 weeks top artists
-./statsfm.py top-artists --range weeks --limit 10
-
-# Last 6 months top albums
-./statsfm.py top-albums --range months --limit 15
-
-# All-time top genres
-./statsfm.py top-genres --range lifetime --limit 10
-```
-
-### Custom Date Ranges
-```bash
-# How many times did I listen to Espresso in 2025?
-./statsfm.py track-stats 188745898 --start 2025 --end 2026
-
-# My top artists in summer 2025
-./statsfm.py top-artists --start 2025-06 --end 2025-09
-
-# Sabrina Carpenter stats for Q2 2025
-./statsfm.py artist-stats 22369 --start 2025-04 --end 2025-07
-```
-
-### Deep Dives
-```bash
-# Search for Madison Beer
+# Search for an artist, then drill down
 ./statsfm.py search "madison beer" --type artist
-# Returns: [39118] Madison Beer [pop]
-
-# Get her detailed stats with monthly breakdown
 ./statsfm.py artist-stats 39118 --start 2025
-
-# See your top tracks from her
 ./statsfm.py top-tracks-from-artist 39118 --limit 20
 
-# Check a specific album's stats
-./statsfm.py album-stats 16211936 --start 2025
+# Weekly breakdown of a track
+./statsfm.py track-stats 188745898 --start 2025 --end 2026 --granularity weekly
 
-# Browse her full discography
-./statsfm.py artist-albums 39118
-# Albums grouped by type, newest first, 15 per section
+# Custom date range
+./statsfm.py top-artists --start 2025-06 --end 2025-09
 
-# Just her albums (no singles)
+# Album tracklist and discography
+./statsfm.py album 1365235
 ./statsfm.py artist-albums 39118 --type album
 
-# Look up a specific album's tracklist
-./statsfm.py album 1365235
-# Shows: Life Support by Madison Beer  #1365235
-#   2021-02-25  |  17 tracks  |  Epic/Sing It Loud  |  Pop, Music
-#   + full tracklist with durations and [E] tags
-```
-
-### Charts
-```bash
-# What's hot globally today?
+# Global charts
 ./statsfm.py charts-top-tracks --limit 20
-
-# Top albums over the last 6 months
-./statsfm.py charts-top-albums --range months --limit 15
-
-# Top artists this week
-./statsfm.py charts-top-artists --range weeks
-```
-
-### Hide Album Names
-```bash
-# Compact view without album names
-./statsfm.py top-tracks --no-album --limit 10
-./statsfm.py recent --no-album
 ```
 
 ## Output Features
