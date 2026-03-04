@@ -60,6 +60,9 @@ For personal stats (`profile`, `top-artists`, `top-tracks`, `recent`, `np`, etc.
 - `stream-stats` - Your overall streaming summary (total streams, total time, avg track length, shortest/longest, unique counts for tracks/artists/albums)
 
 ### Lookups
+- `artist <artist_id>` - Artist info with top songs and top albums (by Spotify popularity). Shows genres, followers, popularity score.
+  - `--limit N` - Number of top songs/albums to show (default: 10)
+  - `--no-album` - Hide album names in track listings
 - `album <album_id>` - Album info and full tracklist (release date, label, genres, tracks with duration and [E] tags)
 - `artist-albums <artist_id>` - All albums/singles by artist, grouped by type (Albums, Singles & EPs, Compilations), newest first. Deduped by ID, 15 per section by default, shows "(N more)" overflow.
   - `--type album|single|all` (default: all)
@@ -285,6 +288,7 @@ Don't just report numbers. "You played 847 tracks" means nothing. "You listened 
 | Your rankings | `top-tracks`, `top-artists`, `top-albums`, `top-genres` | `--range`, `--start/--end`, `--limit` |
 | Currently playing | `now-playing` | | 
 | Recent tracks | `recent` | `--limit` |
+| Artist overview | `artist <id>` | `--limit`, `--no-album` |
 | Artist's discography | `artist-albums <id>` | `--limit` |
 | Album tracklist | `album <id>` | |
 | Your top tracks by artist | `top-tracks-from-artist <id>` | `--range`, `--limit` |
