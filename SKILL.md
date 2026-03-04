@@ -1,6 +1,6 @@
 ---
 name: statsfm
-description: Music data tool powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts. With a stats.fm username, also query personal listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
+description: Music data tool powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts without an account. With a stats.fm username, query personal Spotify listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
 ---
 
 # stats.fm CLI
@@ -13,14 +13,17 @@ Comprehensive Python CLI for querying stats.fm API (Spotify listening analytics)
 
 ## Prerequisites
 
-**Stats.fm account (free)**
+**Stats.fm account (optional)**
+- A stats.fm account is only needed for personal listening data (history, top tracks, now playing, etc.)
+- Without an account, you can still use public features: album tracklists, artist discographies, search, and global charts
 - Don't have one? Visit [stats.fm](https://stats.fm) and sign up with Spotify or Apple Music (AM untested, Plus status unknown)
 - Already have one? Copy your username from your profile
-- Supports Spotify and Apple Music
 
 ## Setup
 
-Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provided, the script exits with code 1.
+**No account needed** for public commands: `search`, `album`, `artist-albums`, `charts-top-tracks`, `charts-top-artists`, `charts-top-albums`.
+
+For personal stats (`profile`, `top-artists`, `top-tracks`, `recent`, `np`, etc.), pass your username with `--user USERNAME` / `-u USERNAME`. These commands exit with code 1 if no user is provided.
 
 ## Quick Start
 
@@ -38,7 +41,7 @@ Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provide
 ## All Commands
 
 ### User Profile
-- `profile` - Show user profile and stats.fm membership info
+- `profile` - Show username, pronouns, bio, Plus status, timezone, Spotify sync info
 
 ### Top Lists
 - `top-tracks` - Your most played tracks
@@ -51,10 +54,10 @@ Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provide
 - `recent` - Recently played tracks
 
 ### Detailed Stats
-- `artist-stats <artist_id>` - Detailed stats for specific artist (with monthly breakdown)
-- `track-stats <track_id>` - Detailed stats for specific track (with monthly breakdown)
-- `album-stats <album_id>` - Detailed stats for specific album (with monthly breakdown)
-- `stream-stats` - Overall streaming statistics
+- `artist-stats <artist_id>` - Your play count, listening time, and monthly breakdown for this artist
+- `track-stats <track_id>` - Your play count, listening time, and monthly breakdown for this track (shows track name + album)
+- `album-stats <album_id>` - Your play count, listening time, and monthly breakdown for this album
+- `stream-stats` - Your overall streaming summary (total streams, total time, avg track length, shortest/longest, unique counts for tracks/artists/albums)
 
 ### Lookups
 - `album <album_id>` - Album info and full tracklist (release date, label, genres, tracks with duration and [E] tags)
@@ -63,9 +66,9 @@ Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provide
   - `--limit N` - Items per section
 
 ### Drill-Down
-- `top-tracks-from-artist <artist_id>` - Top tracks from specific artist
-- `top-tracks-from-album <album_id>` - Top tracks from specific album
-- `top-albums-from-artist <artist_id>` - Top albums from specific artist
+- `top-tracks-from-artist <artist_id>` - Your most played tracks from this artist
+- `top-tracks-from-album <album_id>` - Your most played tracks from this album
+- `top-albums-from-artist <artist_id>` - Your most played albums from this artist
 
 ### Global Charts
 - `charts-top-tracks` - Global top tracks chart
@@ -73,7 +76,7 @@ Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provide
 - `charts-top-albums` - Global top albums chart
 
 ### Search
-- `search <query>` - Search for artists, tracks, or albums
+- `search <query>` - Search for artists, tracks, or albums. Use `--type artist|track|album` to filter results to one category
 
 ## Common Flags
 
@@ -103,6 +106,12 @@ All stats commands support both predefined ranges and custom dates:
 # Q1 2025
 ./statsfm.py artist-stats 39118 --start 2025-01-01 --end 2025-03-31
 ```
+
+### Granularity
+- `--granularity monthly` - Monthly breakdown (default)
+- `--granularity weekly` - Weekly breakdown (shows week number + start date)
+- `--granularity daily` - Daily breakdown (shows date + day name)
+- Works with `artist-stats`, `track-stats`, `album-stats`
 
 ### Other Flags
 - `--limit N` / `-l N` - Limit results (default: 15)
@@ -269,19 +278,20 @@ Don't just report numbers. "You played 847 tracks" means nothing. "You listened 
 
 | Intent | Command | Key flags |
 |--------|---------|-----------|
-| Play count for a track | `track-stats <id>` | `--start/--end`, `--granularity` |
-| Play count for an artist | `artist-stats <id>` | `--start/--end`, `--granularity` |
-| Rankings | `top-tracks`, `top-artists`, `top-albums`, `top-genres` | `--range`, `--start/--end`, `--limit` |
+| Your plays of a track | `track-stats <id>` | `--start/--end`, `--granularity` |
+| Your plays of an artist | `artist-stats <id>` | `--start/--end`, `--granularity` |
+| Your plays of an album | `album-stats <id>` | `--start/--end`, `--granularity` |
+| Your overall stats | `stream-stats` | `--range`, `--start/--end` |
+| Your rankings | `top-tracks`, `top-artists`, `top-albums`, `top-genres` | `--range`, `--start/--end`, `--limit` |
 | Currently playing | `now-playing` | | 
 | Recent tracks | `recent` | `--limit` |
 | Artist's discography | `artist-albums <id>` | `--limit` |
 | Album tracklist | `album <id>` | |
-| Top tracks by artist | `top-tracks-from-artist <id>` | `--range`, `--limit` |
-| Top tracks on album | `top-tracks-from-album <id>` | `--range`, `--limit` |
-| Top albums by artist | `top-albums-from-artist <id>` | `--range`, `--limit` |
+| Your top tracks by artist | `top-tracks-from-artist <id>` | `--range`, `--limit` |
+| Your top tracks on album | `top-tracks-from-album <id>` | `--range`, `--limit` |
+| Your top albums by artist | `top-albums-from-artist <id>` | `--range`, `--limit` |
 | Global charts | `charts-top-tracks`, `charts-top-artists`, `charts-top-albums` | `--range`, `--limit` |
 | Find IDs | `search <query>` | `--type artist\|track\|album` |
-| Overall stats | `stream-stats` | `--range`, `--start/--end` |
 
 ### Edge Cases
 
