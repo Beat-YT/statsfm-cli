@@ -803,7 +803,7 @@ def cmd_charts_top_albums(api: StatsAPI, args):
 
 
 def cmd_artist(api: StatsAPI, args):
-    """Show artist info with top songs and top albums"""
+    """Show artist info and discography"""
     data = api.request(f"/artists/{args.artist_id}")
     artist = data.get("item", {})
 
@@ -822,58 +822,11 @@ def cmd_artist(api: StatsAPI, args):
         info_parts.append(f"popularity {popularity}")
     print("  " + "  |  ".join(info_parts))
 
-    limit = args.limit or 10
-
-    # Top songs
-    tracks_data = api.request(f"/artists/{args.artist_id}/tracks?limit=500")
-    tracks = dedupe(tracks_data.get("items", []))
-    if tracks:
-        tracks.sort(key=lambda t: t.get("spotifyPopularity", 0), reverse=True)
-        print()
-        print("Top songs:")
-        rows = []
-        for i, track in enumerate(tracks[:limit], 1):
-            tag = " [E]" if track.get("explicit") else ""
-            cols = [
-                f"{i:>2}.",
-                track.get("name", "?") + tag,
-            ]
-            if getattr(args, 'album', True):
-                album_name = get_album_name(track)
-                cols.append(album_name)
-            cols.append(f"#{track.get('id', '?')}")
-            rows.append(cols)
-        print_table(rows)
-
-    # Top albums
     albums_data = api.request(f"/artists/{args.artist_id}/albums?limit=500")
-    albums = albums_data.get("items", [])
-    if albums:
-        unique = [a for a in dedupe(albums) if a.get("type") == "album"]
-        unique.sort(key=lambda a: a.get("releaseDate", 0), reverse=True)
-        print()
-        print("Recent releases:")
-        rows = []
-        for i, album in enumerate(unique[:limit], 1):
-            release_ms = album.get("releaseDate", 0)
-            year = datetime.fromtimestamp(release_ms / 1000).strftime("%Y") if release_ms else "?"
-            rows.append([
-                f"{i:>2}.",
-                album.get("name", "?"),
-                year,
-                f"{album.get('totalTracks', '?')} tracks",
-                f"#{album['id']}",
-            ])
-        print_table(rows)
-
-
-def cmd_artist_albums(api: StatsAPI, args):
-    """Show albums by a specific artist"""
-    data = api.request(f"/artists/{args.artist_id}/albums?limit=500")
-    items = data.get("items", [])
+    items = albums_data.get("items", [])
 
     if not items:
-        print("No albums found.")
+        print("\nNo albums found.")
         return
 
     unique = dedupe(items)
@@ -883,18 +836,16 @@ def cmd_artist_albums(api: StatsAPI, args):
     for a in unique:
         groups.setdefault(a.get("type", "other"), []).append(a)
 
+    album_type = getattr(args, 'type', 'all') or 'all'
     type_order = [("album", "Albums"), ("single", "Singles & EPs"), ("compilation", "Compilations")]
-    show_types = type_order if args.type == "all" else [(args.type, dict(type_order)[args.type])]
+    show_types = type_order if album_type == "all" else [(album_type, dict(type_order)[album_type])]
     limit = args.limit or DEFAULT_LIMIT
 
-    first = True
     for key, label in show_types:
         section = groups.get(key, [])
         if not section:
             continue
-        if not first:
-            print()
-        first = False
+        print()
         print(f"{label}:")
         rows = []
         for album in section[:limit]:
@@ -905,6 +856,7 @@ def cmd_artist_albums(api: StatsAPI, args):
         remaining = len(section) - limit
         if remaining > 0:
             print(f"  ({remaining} more)")
+
 
 
 def cmd_album(api: StatsAPI, args):
@@ -1145,13 +1097,13 @@ Set STATSFM_USER environment variable for default user
     top_albums_artist_parser.add_argument("--user", "-u", help="stats.fm username")
 
     # Artist lookup command
-    artist_parser = subparsers.add_parser("artist", help="Show artist info with top songs and top albums")
+    artist_parser = subparsers.add_parser("artist", help="Show artist info and discography")
     artist_parser.add_argument("artist_id", type=int, help="Artist ID")
-    artist_parser.add_argument("--limit", "-l", type=int, help="Number of top songs/albums to show (default: 10)")
-    artist_parser.add_argument("--no-album", dest="album", action="store_false", help="Hide album name in track listings")
+    artist_parser.add_argument("--type", "-t", choices=["album", "single", "all"], default="all", help="Filter by type (default: all)")
+    artist_parser.add_argument("--limit", "-l", type=int, help="Items per section (default: 15)")
 
-    # Artist albums command
-    artist_albums_parser = subparsers.add_parser("artist-albums", help="Show albums by a specific artist")
+    # Alias
+    artist_albums_parser = subparsers.add_parser("artist-albums", help="Alias for artist")
     artist_albums_parser.add_argument("artist_id", type=int, help="Artist ID")
     artist_albums_parser.add_argument("--type", "-t", choices=["album", "single", "all"], default="all", help="Filter by type (default: all)")
     artist_albums_parser.add_argument("--limit", "-l", type=int, help="Items per section (default: 15)")
@@ -1211,7 +1163,7 @@ Set STATSFM_USER environment variable for default user
         "charts-top-albums": cmd_charts_top_albums,
         "album": cmd_album,
         "artist": cmd_artist,
-        "artist-albums": cmd_artist_albums,
+        "artist-albums": cmd_artist,
         "search": cmd_search,
     }
 
