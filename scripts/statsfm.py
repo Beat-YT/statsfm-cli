@@ -13,7 +13,7 @@ from typing import Optional, Dict, Any
 from urllib.parse import quote
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def get_local_timezone() -> str:
@@ -290,6 +290,60 @@ def print_table(rows, max_width=40):
         print("  ".join(parts))
 
 
+RANGE_MAP = {
+    # Explicit aliases → API range values
+    "today": "today",
+    "1d": "today",
+    "4w": "weeks",
+    "4weeks": "weeks",
+    "weeks": "weeks",
+    "6m": "months",
+    "6months": "months",
+    "months": "months",
+    "lifetime": "lifetime",
+    "all": "lifetime",
+}
+
+# Relative duration ranges (resolved to custom timestamp pairs)
+DURATION_RANGES = {
+    "7d": 7,
+    "14d": 14,
+    "30d": 30,
+    "90d": 90,
+}
+
+RANGE_HELP = "Time range: today/1d, 7d (7 days), 4w/weeks (4 weeks), 6m/months (6 months), lifetime/all"
+
+
+def resolve_range(value: str) -> str | None:
+    """Resolve a CLI range alias to the API range value, or None for duration ranges."""
+    lower = value.lower()
+    if lower in DURATION_RANGES:
+        return None  # Signal that this is a duration range
+    mapped = RANGE_MAP.get(lower)
+    if not mapped:
+        all_valid = sorted(set(list(RANGE_MAP.keys()) + list(DURATION_RANGES.keys())))
+        raise SystemExit(f"Unknown range '{value}'. Valid: {', '.join(all_valid)}")
+    return mapped
+
+
+def build_duration_params(days: int) -> str:
+    """Build after=&before= params for a relative duration in days."""
+    now = datetime.now()
+    start = now - timedelta(days=days)
+    after_ms = int(start.timestamp() * 1000)
+    before_ms = int(now.timestamp() * 1000)
+    return f"after={after_ms}&before={before_ms}"
+
+
+def range_to_params(value: str | None, default: str = "weeks") -> str:
+    """Convert a range value to full query parameters string."""
+    val = (value or default).lower()
+    if val in DURATION_RANGES:
+        return build_duration_params(DURATION_RANGES[val])
+    return f"range={resolve_range(val)}"
+
+
 def build_date_params(args, default_range: str = "weeks") -> str:
     """Build date query parameters from args (range or start/end)
 
@@ -304,9 +358,12 @@ def build_date_params(args, default_range: str = "weeks") -> str:
             params += f"&before={before}"
         return params
     else:
-        # Use predefined range
+        # Use predefined range or duration
         range_val = args.range if hasattr(args, 'range') and args.range else default_range
-        return f"range={range_val}"
+        lower = range_val.lower()
+        if lower in DURATION_RANGES:
+            return build_duration_params(DURATION_RANGES[lower])
+        return f"range={resolve_range(range_val)}"
 
 
 def cmd_profile(api: StatsAPI, args):
@@ -735,10 +792,10 @@ def cmd_top_albums_from_artist(api: StatsAPI, args):
 
 def cmd_charts_top_tracks(api: StatsAPI, args):
     """Show global top tracks chart"""
-    range_val = args.range or "today"
+    params = range_to_params(args.range, "today")
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/charts/top/tracks?range={range_val}")
+    data = api.request(f"/charts/top/tracks?{params}")
     items = data.get("items", [])[:limit]  # Apply limit in software
 
     if not items:
@@ -761,10 +818,10 @@ def cmd_charts_top_tracks(api: StatsAPI, args):
 
 def cmd_charts_top_artists(api: StatsAPI, args):
     """Show global top artists chart"""
-    range_val = args.range or "today"
+    params = range_to_params(args.range, "today")
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/charts/top/artists?range={range_val}")
+    data = api.request(f"/charts/top/artists?{params}")
     items = data.get("items", [])[:limit]
 
     if not items:
@@ -782,10 +839,10 @@ def cmd_charts_top_artists(api: StatsAPI, args):
 
 def cmd_charts_top_albums(api: StatsAPI, args):
     """Show global top albums chart"""
-    range_val = args.range or "today"
+    params = range_to_params(args.range, "today")
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/charts/top/albums?range={range_val}")
+    data = api.request(f"/charts/top/albums?{params}")
     items = data.get("items", [])[:limit]
 
     if not items:
@@ -977,7 +1034,7 @@ Examples:
   %(prog)s album-stats 16211936
   %(prog)s stream-stats --range weeks
 
-Ranges: today, weeks (4 weeks), months (6 months), lifetime
+Ranges: today/1d, 4w/weeks (4 weeks), 6m/months (6 months), lifetime/all
 Set STATSFM_USER environment variable for default user
         """
     )
@@ -990,7 +1047,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top artists command
     artists_parser = subparsers.add_parser("top-artists", help="Show top artists")
-    artists_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    artists_parser.add_argument("--range", "-r", help=RANGE_HELP)
     artists_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artists_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artists_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 10)")
@@ -998,7 +1055,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top tracks command
     tracks_parser = subparsers.add_parser("top-tracks", help="Show top tracks")
-    tracks_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    tracks_parser.add_argument("--range", "-r", help=RANGE_HELP)
     tracks_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     tracks_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     tracks_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 10)")
@@ -1007,7 +1064,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top albums command
     albums_parser = subparsers.add_parser("top-albums", help="Show top albums")
-    albums_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    albums_parser.add_argument("--range", "-r", help=RANGE_HELP)
     albums_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     albums_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     albums_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 10)")
@@ -1015,7 +1072,7 @@ Set STATSFM_USER environment variable for default user
 
     # Top genres command
     genres_parser = subparsers.add_parser("top-genres", help="Show top genres")
-    genres_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    genres_parser.add_argument("--range", "-r", help=RANGE_HELP)
     genres_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     genres_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     genres_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 10)")
@@ -1034,7 +1091,7 @@ Set STATSFM_USER environment variable for default user
     # Artist stats command
     artist_stats_parser = subparsers.add_parser("artist-stats", help="Show stats for a specific artist")
     artist_stats_parser.add_argument("artist_id", type=int, help="Artist ID")
-    artist_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
+    artist_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     artist_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
@@ -1044,7 +1101,7 @@ Set STATSFM_USER environment variable for default user
     # Track stats command
     track_stats_parser = subparsers.add_parser("track-stats", help="Show stats for a specific track")
     track_stats_parser.add_argument("track_id", type=int, help="Track ID")
-    track_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
+    track_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     track_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     track_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     track_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
@@ -1054,7 +1111,7 @@ Set STATSFM_USER environment variable for default user
     # Album stats command
     album_stats_parser = subparsers.add_parser("album-stats", help="Show stats for a specific album")
     album_stats_parser.add_argument("album_id", type=int, help="Album ID")
-    album_stats_parser.add_argument("--range", "-r", help="Time range (weeks/months/lifetime)")
+    album_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     album_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     album_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     album_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
@@ -1063,7 +1120,7 @@ Set STATSFM_USER environment variable for default user
 
     # Stream stats command
     stream_stats_parser = subparsers.add_parser("stream-stats", help="Show overall stream statistics")
-    stream_stats_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    stream_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     stream_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     stream_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     stream_stats_parser.add_argument("--user", "-u", help="stats.fm username")
@@ -1071,7 +1128,7 @@ Set STATSFM_USER environment variable for default user
     # Top tracks from artist command
     top_tracks_artist_parser = subparsers.add_parser("top-tracks-from-artist", help="Show top tracks from a specific artist")
     top_tracks_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
-    top_tracks_artist_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    top_tracks_artist_parser.add_argument("--range", "-r", help=RANGE_HELP)
     top_tracks_artist_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_tracks_artist_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_tracks_artist_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 15)")
@@ -1081,7 +1138,7 @@ Set STATSFM_USER environment variable for default user
     # Top tracks from album command
     top_tracks_album_parser = subparsers.add_parser("top-tracks-from-album", help="Show top tracks from a specific album")
     top_tracks_album_parser.add_argument("album_id", type=int, help="Album ID")
-    top_tracks_album_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    top_tracks_album_parser.add_argument("--range", "-r", help=RANGE_HELP)
     top_tracks_album_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_tracks_album_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_tracks_album_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 15)")
@@ -1090,7 +1147,7 @@ Set STATSFM_USER environment variable for default user
     # Top albums from artist command
     top_albums_artist_parser = subparsers.add_parser("top-albums-from-artist", help="Show top albums from a specific artist")
     top_albums_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
-    top_albums_artist_parser.add_argument("--range", "-r", help="Time range (default: weeks)")
+    top_albums_artist_parser.add_argument("--range", "-r", help=RANGE_HELP)
     top_albums_artist_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_albums_artist_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     top_albums_artist_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 15)")
@@ -1111,16 +1168,16 @@ Set STATSFM_USER environment variable for default user
     # Charts commands
     charts_tracks_parser = subparsers.add_parser("charts-top-tracks", help="Show global top tracks chart")
     charts_tracks_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 15)")
-    charts_tracks_parser.add_argument("--range", "-r", help="Time range (default: today)")
+    charts_tracks_parser.add_argument("--range", "-r", help=RANGE_HELP)
     charts_tracks_parser.add_argument("--no-album", dest="album", action="store_false", help="Hide album name")
 
     charts_artists_parser = subparsers.add_parser("charts-top-artists", help="Show global top artists chart")
     charts_artists_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 15)")
-    charts_artists_parser.add_argument("--range", "-r", help="Time range (default: today)")
+    charts_artists_parser.add_argument("--range", "-r", help=RANGE_HELP)
 
     charts_albums_parser = subparsers.add_parser("charts-top-albums", help="Show global top albums chart")
     charts_albums_parser.add_argument("--limit", "-l", type=int, help="Number of results (default: 15)")
-    charts_albums_parser.add_argument("--range", "-r", help="Time range (default: today)")
+    charts_albums_parser.add_argument("--range", "-r", help=RANGE_HELP)
 
     # Album lookup command
     album_parser = subparsers.add_parser("album", help="Show album info and tracklist")
