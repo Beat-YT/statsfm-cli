@@ -248,11 +248,13 @@ Then use the ID numbers in other commands.
 
 **Core principle:** Connect data to meaning. They want insight, not tables. Show them patterns they didn't see.
 
+**ALWAYS check multiple ranges.** Lifetime alone misses the story. Pull `--range today`, `7d`, `30d`, `4w`, `90d`, AND `lifetime` to see how taste is shifting. A current obsession invisible in lifetime stats is THE story. Same for genres and artists. One range = incomplete picture.
+
 ### Query Patterns
 
 **"Tell me about [artist]"** → `search` → `artist-stats` (shows relationship timeline). Check first month in breakdown (when they discovered), recent months (still listening?). `top-tracks-from-artist` shows what stuck.
 
-**"What's my taste like?"** → Compare time ranges. `top-artists --range 4w` vs `--range lifetime` shows shifts. A lifetime #1 not in this month's top 20 is more interesting than the current #1. Same for `top-genres`.
+**"What's my taste like?"** → Pull MULTIPLE ranges: `top-artists --range 7d`, `--range 30d`, `--range 90d`, `--range lifetime`. Compare them. A lifetime #1 not in this month's top 20 is more interesting than the current #1. Same for `top-genres`. Check both artists AND genres - sometimes genre shifts while artists stay (or vice versa).
 
 **"What am I listening to?"** → `now-playing` for current track. `recent --limit 15` for session mood. Name patterns (same artist, genre clustering).
 
