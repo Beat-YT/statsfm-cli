@@ -87,10 +87,16 @@ For personal stats (`profile`, `top-artists`, `top-tracks`, `recent`, `np`, etc.
 All stats commands support both predefined ranges and custom dates:
 
 **Predefined ranges:**
-- `--range today` - Today only
-- `--range weeks` - Last 4 weeks (default)
-- `--range months` - Last 6 months
-- `--range lifetime` - All time
+- `--range today` or `--range 1d` - Today only
+- `--range weeks` or `--range 4w` - Last 4 weeks (default)
+- `--range months` or `--range 6m` - Last 6 months
+- `--range lifetime` or `--range all` - All time
+
+**Duration ranges** (resolved to custom timestamps):
+- `--range 7d` - Last 7 days
+- `--range 14d` - Last 14 days
+- `--range 30d` - Last 30 days
+- `--range 90d` - Last 90 days
 
 **Custom date ranges:**
 - `--start YYYY` - Start year (e.g., `--start 2025`)
