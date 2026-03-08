@@ -89,7 +89,7 @@ All stats commands support both predefined ranges and custom dates:
 **Predefined ranges:**
 - `--range today` or `--range 1d` - Today only
 - `--range 4w` - Last 4 weeks (default)
-- `--range months` or `--range 6m` - Last 6 months
+- `--range 6m` - Last 6 months
 - `--range lifetime` or `--range all` - All time
 
 **Duration ranges** (resolved to custom timestamps):
