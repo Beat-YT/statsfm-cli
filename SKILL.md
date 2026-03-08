@@ -244,44 +244,37 @@ Then use the ID numbers in other commands.
 
 ## For AI Agents
 
-### Setup
+**Setup:** Check memory for a stats.fm username. If missing, ask. All personal data commands need `--user USERNAME`.
 
-Check your memory for a stored stats.fm username. If you don't have one, ask. Every command that touches user data needs `--user USERNAME`.
+**Core principle:** Connect data to meaning. They want insight, not tables. Show them patterns they didn't see.
 
-### What This Tool Is For
+**ALWAYS check multiple ranges.** Lifetime alone misses the story. Pull `--range today`, `7d`, `30d`, `4w`, `90d`, AND `lifetime` to see how taste is shifting. A current obsession invisible in lifetime stats is THE story. Same for genres and artists. One range = incomplete picture.
 
-This gives you direct access to someone's music listening history. That's personal. The value isn't in dumping tables of data — it's in showing someone something about themselves they didn't already know.
+### Query Patterns
 
-When someone asks about their music, they're not asking for a database query. They want to understand their own taste, revisit a memory, or discover a pattern. Your job is to connect the data to something meaningful.
+**"Tell me about [artist]"** → `search` → `artist-stats` (shows relationship timeline). Check first month in breakdown (when they discovered), recent months (still listening?). `top-tracks-from-artist` shows what stuck.
 
-### How to Think About It
+**"What's my taste like?"** → Pull MULTIPLE ranges: `top-artists --range 7d`, `--range 30d`, `--range 90d`, `--range lifetime`. Compare them. A lifetime #1 not in this month's top 20 is more interesting than the current #1. Same for `top-genres`. Check both artists AND genres - sometimes genre shifts while artists stay (or vice versa).
 
-**Someone mentions an artist:** They have a relationship with that artist. Find out what it looks like — how long they've been listening, what era they discovered them, which tracks stuck. `search` → `artist-stats` tells the story. `top-tracks-from-artist` shows what resonated. `artist-albums` gives context on the discography. Don't just list all three — read the first result and decide what's interesting before going deeper.
+**"What am I listening to?"** → `now-playing` for current track. `recent --limit 15` for session mood. Name patterns (same artist, genre clustering).
 
-**Someone asks about their taste:** They want a mirror, not a spreadsheet. `top-artists` and `top-genres` across different time ranges reveal how their taste is shifting. Compare `--range 4w` to `--range 6m` to `--range lifetime` — the differences are the story. A lifetime #1 that's not in the top 20 this month is more interesting than the current #1.
+**Album questions** → `album` for tracklist. `album-stats` for listening timeline. Monthly breakdown shows obsession vs slow burn.
 
-**Someone mentions an album:** They want to know about it or remember it. `album` gives the tracklist and metadata. If they also have listening data, `album-stats` shows when and how much they played it. Monthly breakdowns reveal whether it was a one-week obsession or a slow burn.
+### Time Translations
 
-**Someone asks what they're listening to:** `now-playing` is the literal answer. But `recent` with the last 10-15 tracks shows the session's mood. If there's a pattern (same artist, same genre), name it.
-
-### Date Ranges
-
-When the user says a time period, translate it:
 - "This year" → `--start 2025 --end 2026`
-- "Last summer" → `--start 2025-06 --end 2025-09`
-- "When did I start listening to X" → `artist-stats <id>` with `--range lifetime` — the monthly breakdown shows the first month
+- "Last summer" → `--start 2025-06 --end 2025-09`  
+- "When did I discover X" → `artist-stats <id> --range lifetime` (first month in breakdown)
 
-### Reading the Data
+### Pattern Recognition
 
-The numbers tell stories. Look for these:
+- **200+ plays in one month** = obsession period
+- **First appearance** = discovery moment (check if album dropped that month)
+- **Sudden drop** = displacement (new obsession or just moved on)
+- **Old track in recent plays** = nostalgia/rediscovery
+- **One track 5x the next** = their song (repeat anthem)
 
-- **A month with 200+ plays** — that artist owned their life for a while. Say so.
-- **First appearance in monthly breakdown** — that's when they discovered the artist. Context: was an album released that month?
-- **Sudden drop after months of plays** — something changed. New obsession displaced it, or they moved on.
-- **Old tracks in recent plays** — nostalgia trip or rediscovery. Worth noting.
-- **One track with 5x the plays of the next** — that's their song. The one they put on repeat.
-
-Don't just report numbers. "You played 847 tracks" means nothing. "You listened to Madison Beer for 30 hours in March — that's almost an hour a day" means something.
+Context beats raw numbers: "30 hours in March = ~1hr/day" not "1,847 plays."
 
 ### Command Reference
 
