@@ -88,8 +88,8 @@ All stats commands support both predefined ranges and custom dates:
 
 **Predefined ranges:**
 - `--range today` or `--range 1d` - Today only
-- `--range weeks` or `--range 4w` - Last 4 weeks (default)
-- `--range months` or `--range 6m` - Last 6 months
+- `--range 4w` - Last 4 weeks (default)
+- `--range 6m` - Last 6 months
 - `--range lifetime` or `--range all` - All time
 
 **Duration ranges** (resolved to custom timestamps):
@@ -258,7 +258,7 @@ When someone asks about their music, they're not asking for a database query. Th
 
 **Someone mentions an artist:** They have a relationship with that artist. Find out what it looks like — how long they've been listening, what era they discovered them, which tracks stuck. `search` → `artist-stats` tells the story. `top-tracks-from-artist` shows what resonated. `artist-albums` gives context on the discography. Don't just list all three — read the first result and decide what's interesting before going deeper.
 
-**Someone asks about their taste:** They want a mirror, not a spreadsheet. `top-artists` and `top-genres` across different time ranges reveal how their taste is shifting. Compare `--range weeks` to `--range months` to `--range lifetime` — the differences are the story. A lifetime #1 that's not in the top 20 this month is more interesting than the current #1.
+**Someone asks about their taste:** They want a mirror, not a spreadsheet. `top-artists` and `top-genres` across different time ranges reveal how their taste is shifting. Compare `--range 4w` to `--range 6m` to `--range lifetime` — the differences are the story. A lifetime #1 that's not in the top 20 this month is more interesting than the current #1.
 
 **Someone mentions an album:** They want to know about it or remember it. `album` gives the tracklist and metadata. If they also have listening data, `album-stats` shows when and how much they played it. Monthly breakdowns reveal whether it was a one-week obsession or a slow burn.
 
