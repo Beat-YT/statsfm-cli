@@ -575,8 +575,9 @@ def cmd_recent(api: StatsAPI, args):
 
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/users/{user}/streams/recent?limit={limit}")
-    items = data.get("items", [])
+    data = api.request(f"/users/{user}/streams/recent")
+    all_items = data.get("items", [])
+    items = all_items[:limit]
 
     if not items:
         print("No recent streams found.")
@@ -600,6 +601,9 @@ def cmd_recent(api: StatsAPI, args):
             row.append(get_album_name(track))
         rows.append(row)
     print_table(rows)
+    remaining = len(all_items) - limit
+    if remaining > 0:
+        print(f"  ({remaining} more)")
 
 
 def cmd_artist_stats(api: StatsAPI, args):
