@@ -90,7 +90,7 @@ All stats commands support both predefined ranges and custom dates:
 - `--range today` or `--range 1d` - Today only
 - `--range 4w` - Last 4 weeks (default)
 - `--range 6m` - Last 6 months
-- `--range lifetime` or `--range all` - All time
+- `--range all` - All time (lifetime)
 
 **Duration ranges** (resolved to custom timestamps):
 - `--range 7d` - Last 7 days
@@ -210,7 +210,7 @@ All errors print to **stderr** and exit with **code 1**.
 | No user set | `Error: No user specified.` | Pass `--user USERNAME` flag |
 | API error (4xx/5xx) | `API Error (code): message` | Check if user exists, profile is public, or ID is valid |
 | Connection failure | `Connection Error: reason` | Retry after a moment, check network |
-| Empty results | No error, just no output | User may be private, or no data for that period — try `--range lifetime` |
+| Empty results | No error, just no output | User may be private, or no data for that period — try `--range all` |
 | Plus-only data | Shows `[Plus required]` inline | Acknowledge gracefully, show what's available |
 
 ## Finding IDs
@@ -246,35 +246,13 @@ Then use the ID numbers in other commands.
 
 **Setup:** Check memory for a stats.fm username. If missing, ask. All personal data commands need `--user USERNAME`.
 
-**Core principle:** Connect data to meaning. They want insight, not tables. Show them patterns they didn't see.
-
-**ALWAYS check multiple ranges.** Lifetime alone misses the story. Pull `--range today`, `7d`, `30d`, `4w`, `90d`, AND `lifetime` to see how taste is shifting. A current obsession invisible in lifetime stats is THE story. Same for genres and artists. One range = incomplete picture.
-
-### Query Patterns
-
-**"Tell me about [artist]"** → `search` → `artist-stats` (shows relationship timeline). Check first month in breakdown (when they discovered), recent months (still listening?). `top-tracks-from-artist` shows what stuck.
-
-**"What's my taste like?"** → Pull MULTIPLE ranges: `top-artists --range 7d`, `--range 30d`, `--range 90d`, `--range lifetime`. Compare them. A lifetime #1 not in this month's top 20 is more interesting than the current #1. Same for `top-genres`. Check both artists AND genres - sometimes genre shifts while artists stay (or vice versa).
-
-**"What am I listening to?"** → `now-playing` for current track. `recent --limit 15` for session mood. Name patterns (same artist, genre clustering).
-
-**Album questions** → `album` for tracklist. `album-stats` for listening timeline. Monthly breakdown shows obsession vs slow burn.
+**Multiple time ranges:** Always compare multiple ranges (`--range today`, `7d`, `30d`, `90d`, `all`) to show how taste shifts over time. Lifetime stats alone miss current trends.
 
 ### Time Translations
 
 - "This year" → `--start 2025 --end 2026`
 - "Last summer" → `--start 2025-06 --end 2025-09`  
-- "When did I discover X" → `artist-stats <id> --range lifetime` (first month in breakdown)
-
-### Pattern Recognition
-
-- **200+ plays in one month** = obsession period
-- **First appearance** = discovery moment (check if album dropped that month)
-- **Sudden drop** = displacement (new obsession or just moved on)
-- **Old track in recent plays** = nostalgia/rediscovery
-- **One track 5x the next** = their song (repeat anthem)
-
-Context beats raw numbers: "30 hours in March = ~1hr/day" not "1,847 plays."
+- "When did I discover X" → `artist-stats <id> --range all` (first month in breakdown)
 
 ### Command Reference
 
@@ -299,7 +277,7 @@ Context beats raw numbers: "30 hours in March = ~1hr/day" not "1,847 plays."
 ### Edge Cases
 
 - **Free users:** Play counts are not available for top tracks — rankings and breakdowns still work, lead with those
-- **Empty results:** Try `--range lifetime` as fallback. Could also be a private profile.
+- **Empty results:** Try `--range all` as fallback. Could also be a private profile.
 - **Search duplicates:** Use the first result
 - **Apple Music:** Untested, may have gaps
 
