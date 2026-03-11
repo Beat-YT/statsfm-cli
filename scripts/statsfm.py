@@ -292,8 +292,6 @@ def print_table(rows, max_width=40):
 
 RANGE_MAP = {
     # Explicit aliases → API range values
-    # Legacy ambiguous names removed: "weeks" (unclear if 1 or 4),
-    # "months" (unclear if 1 or 6), "lifetime" (use "all")
     "today": "today",
     "1d": "today",
     "4w": "weeks",
@@ -301,6 +299,7 @@ RANGE_MAP = {
     "6m": "months",
     "6months": "months",
     "all": "lifetime",
+    "lifetime": "lifetime"
 }
 
 # Relative duration ranges (resolved to custom timestamp pairs)
