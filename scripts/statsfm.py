@@ -732,7 +732,7 @@ def cmd_stream_stats(api: StatsAPI, args):
             print(f"Unique: {', '.join(parts)}")
 
 
-def show_top_items(api: StatsAPI, endpoint: str, item_key: str, limit: int, show_album=False):
+def show_top_items(api: StatsAPI, endpoint: str, item_key: str, limit: int, show_album=False, show_id=False):
     """Shared logic for top-tracks-from-artist, top-tracks-from-album, top-albums-from-artist"""
     data = api.request(endpoint)
     items = data.get("items", [])
@@ -752,6 +752,8 @@ def show_top_items(api: StatsAPI, endpoint: str, item_key: str, limit: int, show
             row.append(get_album_name(entry))
         if has_stats:
             row += [f"{item['streams']} plays", f"({format_time(item['playedMs'])})"]
+        if show_id:
+            row.append(f"#{entry.get('id', '?')}")
         rows.append(row)
     print_table(rows)
     remaining = total - limit
@@ -767,7 +769,7 @@ def cmd_top_tracks_from_artist(api: StatsAPI, args):
         sys.exit(1)
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
-    show_top_items(api, f"/users/{user}/top/artists/{args.artist_id}/tracks?{date_params}", "track", limit, show_album=args.album)
+    show_top_items(api, f"/users/{user}/top/artists/{args.artist_id}/tracks?{date_params}", "track", limit, show_album=args.album, show_id=True)
 
 
 def cmd_top_tracks_from_album(api: StatsAPI, args):
@@ -789,7 +791,7 @@ def cmd_top_albums_from_artist(api: StatsAPI, args):
         sys.exit(1)
     date_params = build_date_params(args)
     limit = args.limit or DEFAULT_LIMIT
-    show_top_items(api, f"/users/{user}/top/artists/{args.artist_id}/albums?{date_params}", "album", limit)
+    show_top_items(api, f"/users/{user}/top/artists/{args.artist_id}/albums?{date_params}", "album", limit, show_id=True)
 
 
 def cmd_charts_top_tracks(api: StatsAPI, args):
