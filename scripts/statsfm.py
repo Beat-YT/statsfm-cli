@@ -42,7 +42,7 @@ def get_local_timezone() -> str:
 
 BASE_URL = "https://api.stats.fm/api/v1"
 DEFAULT_USER = os.environ.get("STATSFM_USER", "")
-DEFAULT_RANGE = "weeks"
+DEFAULT_RANGE = "4w"
 DEFAULT_LIMIT = 15
 
 
@@ -292,15 +292,14 @@ def print_table(rows, max_width=40):
 
 RANGE_MAP = {
     # Explicit aliases → API range values
+    # Legacy ambiguous names removed: "weeks" (unclear if 1 or 4),
+    # "months" (unclear if 1 or 6), "lifetime" (use "all")
     "today": "today",
     "1d": "today",
     "4w": "weeks",
     "4weeks": "weeks",
-    "weeks": "weeks",
     "6m": "months",
     "6months": "months",
-    "months": "months",
-    "lifetime": "lifetime",
     "all": "lifetime",
 }
 
@@ -312,7 +311,7 @@ DURATION_RANGES = {
     "90d": 90,
 }
 
-RANGE_HELP = "Time range: today/1d, 7d (7 days), 4w/weeks (4 weeks), 6m/months (6 months), lifetime/all"
+RANGE_HELP = "Time range: today/1d, 7d, 14d, 30d, 90d, 4w/4weeks (4 weeks), 6m/6months (6 months), all (lifetime)"
 
 
 def resolve_range(value: str) -> str | None:
@@ -336,7 +335,7 @@ def build_duration_params(days: int) -> str:
     return f"after={after_ms}&before={before_ms}"
 
 
-def range_to_params(value: str | None, default: str = "weeks") -> str:
+def range_to_params(value: str | None, default: str = "4w") -> str:
     """Convert a range value to full query parameters string."""
     val = (value or default).lower()
     if val in DURATION_RANGES:
@@ -344,7 +343,7 @@ def range_to_params(value: str | None, default: str = "weeks") -> str:
     return f"range={resolve_range(val)}"
 
 
-def build_date_params(args, default_range: str = "weeks") -> str:
+def build_date_params(args, default_range: str = "4w") -> str:
     """Build date query parameters from args (range or start/end)
 
     Returns query string like "range=weeks" or "after=123&before=456"
