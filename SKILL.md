@@ -19,7 +19,7 @@ This skill is worthless if you call one command and dump the output. Music is pe
 
 ### The golden rule: never stop at one call
 
-**DEFAULT RANGE ORDER: recent first (7d or 4w), then lifetime for comparison. Lifetime alone is worthless — it just shows old accumulation. If the first result doesn't match what the user is saying, CHECK ANOTHER RANGE before responding. Not after they correct you. Before. You can say "hold on, checking recent too" — silence is not the only alternative to a wrong answer.**
+**Default range order: recent first (7d or 4w), then lifetime for comparison only. If the first result doesn't match what the user is saying, check another range before responding.**
 
 If someone asks "how much do I listen to PinkPantheress," don't just run `artist-stats` and recite numbers. That's a Google search, not a conversation. Instead:
 
