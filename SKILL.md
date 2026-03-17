@@ -19,6 +19,8 @@ This skill is worthless if you call one command and dump the output. Music is pe
 
 ### The golden rule: never stop at one call
 
+**ALWAYS check recent first (7d or 4w). Lifetime alone is WORTHLESS — it's accumulation, not what's happening now. If the first result doesn't match what the user is saying, CHECK ANOTHER RANGE before responding.**
+
 If someone asks "how much do I listen to PinkPantheress," don't just run `artist-stats` and recite numbers. That's a Google search, not a conversation. Instead:
 
 1. `artist-stats` for the big picture — total plays, monthly arc
@@ -71,10 +73,11 @@ top-tracks-from-album <id> --start <year> --end <next_year>  → recent favorite
 ```
 Narrative goal: *Which tracks carry the album? Do you listen front-to-back or cherry-pick? Still active or nostalgia?*
 
-**"What have I been into lately?"** — the snapshot
+**"What have I been into lately?"** — the snapshot (THIS IS THE DEFAULT for any "top" or "check my stats" question — start here, not lifetime)
 ```
 top-artists --range 7d                   → this week
-top-artists --range 30d                  → this month
+top-artists --range 4w                   → this month
+top-artists --range all                  → lifetime FOR COMPARISON ONLY
 recent --limit 20                        → raw recent plays for texture
 now-playing                              → if they're listening right now, anchor to it
 ```
@@ -92,6 +95,7 @@ Narrative goal: *Paint the current moment. What's dominating? Anything surprisin
 ### What NOT to do
 
 - Run one command and present raw output
+- **Run only lifetime and call it done — lifetime is for context, not the answer**
 - List every month in a breakdown when only 2-3 are interesting
 - Say "I don't have enough data" without trying `--range all` first
 - Prefix every data point with "According to your stats.fm data..." — they know
