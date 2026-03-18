@@ -732,6 +732,83 @@ def cmd_stream_stats(api: StatsAPI, args):
             print(f"Unique: {', '.join(parts)}")
 
 
+def range_to_timestamps(range_val: str) -> str:
+    """Convert any range alias to after=&before= timestamp params for the hourly endpoint."""
+    lower = range_val.lower()
+    # Duration ranges (days)
+    duration_map = {**DURATION_RANGES, "4w": 28, "4weeks": 28, "6m": 180, "6months": 180, "today": 1, "1d": 1}
+    if lower in duration_map:
+        return build_duration_params(duration_map[lower])
+    # Lifetime/all: use a very old start date
+    if lower in ("all", "lifetime"):
+        now_ms = int(datetime.now().timestamp() * 1000)
+        return f"after=1420070400000&before={now_ms}"  # Jan 1, 2015
+    # Default: 28 days
+    return build_duration_params(28)
+
+
+def cmd_hourly_breakdown(api: StatsAPI, args):
+    """Show listening distribution by hour of day"""
+    user = get_user_or_exit(args)
+
+    # Build timestamp params (hourly endpoint needs after/before in ms, not range=)
+    range_val = args.range if hasattr(args, 'range') and args.range else "4w"
+    if hasattr(args, 'start') and args.start:
+        after_ms = parse_date(args.start)
+        params = f"after={after_ms}"
+        if hasattr(args, 'end') and args.end:
+            before_ms = parse_date(args.end)
+            params += f"&before={before_ms}"
+    else:
+        params = range_to_timestamps(range_val)
+
+    tz = get_local_timezone()
+    data = api.request(f"/users/{user}/streams/stats/dates?{params}&timeZone={tz}")
+    items = data.get("items", {})
+    hours = items.get("hours", {})
+
+    if not hours:
+        print("No hourly data found. Try a wider date range.")
+        return
+
+    # Find peak for scaling
+    max_count = max(int(v.get("count", 0)) for v in hours.values()) or 1
+
+    print(f"Hourly listening distribution ({range_val}):")
+    print(f"{'Hour':<8} {'Plays':>6}   {'Bar'}")
+    print("-" * 50)
+
+    total_plays = 0
+    hour_data = []
+    for h in range(24):
+        h_data = hours.get(str(h), {})
+        count = h_data.get("count", 0)
+        total_plays += count
+        hour_data.append((h, count))
+
+    peak_hours = sorted(hour_data, key=lambda x: x[1], reverse=True)[:3]
+    peak_set = {h for h, _ in peak_hours}
+
+    for h, count in hour_data:
+        label = f"{h:02d}:00"
+        bar_len = int((count / max_count) * 25)
+        bar = "█" * bar_len
+        peak_marker = " ← peak" if h == peak_hours[0][0] else ""
+        print(f"{label:<8} {count:>6}   {bar}{peak_marker}")
+
+    print("-" * 50)
+    print(f"Total: {total_plays:,} plays")
+    if peak_hours:
+        top3 = ", ".join(f"{h:02d}:00 ({c} plays)" for h, c in peak_hours)
+        print(f"Top hours: {top3}")
+
+    # Night owl score: plays between 23:00-05:00 vs total
+    night_plays = sum(c for h, c in hour_data if h >= 23 or h <= 5)
+    if total_plays > 0:
+        night_pct = night_plays / total_plays * 100
+        print(f"Night owl score: {night_pct:.0f}% of plays between 23:00–05:00")
+
+
 def show_top_items(api: StatsAPI, endpoint: str, item_key: str, limit: int, show_album=False, show_id=False):
     """Shared logic for top-tracks-from-artist, top-tracks-from-album, top-albums-from-artist"""
     data = api.request(endpoint)
@@ -1129,6 +1206,13 @@ Set STATSFM_USER environment variable for default user
     stream_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     stream_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
+    # Hourly breakdown command
+    hourly_parser = subparsers.add_parser("hourly-breakdown", help="Show listening distribution by hour of day")
+    hourly_parser.add_argument("--range", "-r", help=RANGE_HELP)
+    hourly_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
+    hourly_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
+    hourly_parser.add_argument("--user", "-u", help="stats.fm username")
+
     # Top tracks from artist command
     top_tracks_artist_parser = subparsers.add_parser("top-tracks-from-artist", help="Show top tracks from a specific artist")
     top_tracks_artist_parser.add_argument("artist_id", type=int, help="Artist ID")
@@ -1216,6 +1300,8 @@ Set STATSFM_USER environment variable for default user
         "track-stats": cmd_track_stats,
         "album-stats": cmd_album_stats,
         "stream-stats": cmd_stream_stats,
+        "hourly-breakdown": cmd_hourly_breakdown,
+        "hourly": cmd_hourly_breakdown,
         "top-tracks-from-artist": cmd_top_tracks_from_artist,
         "top-tracks-from-album": cmd_top_tracks_from_album,
         "top-albums-from-artist": cmd_top_albums_from_artist,
