@@ -732,6 +732,49 @@ def cmd_stream_stats(api: StatsAPI, args):
             print(f"Unique: {', '.join(parts)}")
 
 
+def cmd_hourly(api: StatsAPI, args):
+    """Show listening activity broken down by hour of day"""
+    user = get_user_or_exit(args)
+    tz = get_local_timezone()
+
+    date_params = build_date_params(args)
+    # The stats/dates endpoint uses ms timestamps; if range= was returned we need to convert
+    # For simplicity, use the same params (API accepts range= too)
+    data = api.request(f"/users/{user}/streams/stats/dates?{date_params}&timeZone={tz}")
+    hours_data = data.get("items", {}).get("hours", {})
+
+    if not hours_data:
+        print("No hourly data available. Try with a longer date range.")
+        return
+
+    counts = {int(h): v["count"] for h, v in hours_data.items() if v.get("count", 0) > 0}
+    if not counts:
+        print("No listening data found for this period.")
+        return
+
+    max_count = max(counts.values())
+    total = sum(counts.values())
+
+    peak_hour = max(counts, key=counts.get)
+    dead_hour = min(range(24), key=lambda h: counts.get(h, 0))
+
+    bar_width = 20
+    print(f"Listening by hour  (total: {total:,} plays, tz: {tz})\n")
+    for h in range(24):
+        count = counts.get(h, 0)
+        ms = hours_data.get(str(h), {}).get("durationMs", 0)
+        bar = "█" * int(bar_width * count / max_count) if max_count > 0 else ""
+        label = "← PEAK" if h == peak_hour else ("← quiet" if h == dead_hour and count < total * 0.02 else "")
+        print(f"  {h:02d}:00  {bar:<{bar_width}}  {count:4d} plays  {label}")
+
+    print(f"\n  Peak:    {peak_hour:02d}:00 — {counts.get(peak_hour, 0):,} plays")
+    print(f"  Quietest:{dead_hour:02d}:00 — {counts.get(dead_hour, 0):,} plays")
+    night_plays = sum(counts.get(h, 0) for h in range(0, 6))
+    day_plays = sum(counts.get(h, 0) for h in range(8, 20))
+    print(f"\n  Midnight–6 AM: {night_plays:,} plays ({100*night_plays//total}% of total)")
+    print(f"  8 AM–8 PM:     {day_plays:,} plays ({100*day_plays//total}% of total)")
+
+
 def show_top_items(api: StatsAPI, endpoint: str, item_key: str, limit: int, show_album=False, show_id=False):
     """Shared logic for top-tracks-from-artist, top-tracks-from-album, top-albums-from-artist"""
     data = api.request(endpoint)
@@ -1187,6 +1230,13 @@ Set STATSFM_USER environment variable for default user
     album_parser = subparsers.add_parser("album", help="Show album info and tracklist")
     album_parser.add_argument("album_id", type=int, help="Album ID")
 
+    # Hourly breakdown command
+    hourly_parser = subparsers.add_parser("hourly", help="Show listening activity broken down by hour of day")
+    hourly_parser.add_argument("--user", "-u", help="stats.fm username")
+    hourly_parser.add_argument("--range", "-r", help="Time range (4w, 6m, all, etc.)")
+    hourly_parser.add_argument("--start", "-s", help="Start date (YYYY-MM-DD or YYYY-MM or YYYY)")
+    hourly_parser.add_argument("--end", "-e", help="End date")
+
     # Search command
     search_parser = subparsers.add_parser("search", help="Search for artists, tracks, or albums")
     search_parser.add_argument("query", help="Search query")
@@ -1226,6 +1276,7 @@ Set STATSFM_USER environment variable for default user
         "artist": cmd_artist,
         "artist-albums": cmd_artist,
         "search": cmd_search,
+        "hourly": cmd_hourly,
     }
 
     cmd_func = commands.get(args.command)
