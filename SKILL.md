@@ -80,6 +80,13 @@ now-playing                              → if they're listening right now, anc
 ```
 Narrative goal: *Paint the current moment. What's dominating? Anything surprising?*
 
+**"When do I listen most?"** — the time-of-day pattern
+```
+hourly --range 4w           → bar chart of plays by hour, current month
+hourly --start 2026-01      → same for a specific period
+```
+Narrative goal: *Peak hours, dead zones, night owl vs morning person signal.*
+
 ### Voice and tone
 
 - **Be specific, not generic.** "You really like this artist" is worthless. "You've averaged 4 plays a day of this track for two weeks straight" is a story.
@@ -167,6 +174,12 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 | `artist <id>` | Artist info, genres, popularity, discography | `--type album\|single\|all`, `--limit` |
 | `album <id>` | Album info and full tracklist | |
 | `artist-albums <id>` | Discography grouped by type, newest first | `--type album\|single\|all`, `--limit` |
+
+**Hourly Breakdown**
+
+| Command | Description | Key flags |
+|---------|-------------|-----------|
+| `hourly` | Listening activity by hour of day (bar chart + peak/quiet summary) | `--range`, `--start/--end` |
 
 **Drill-Down (your stats within an artist/album)**
 
