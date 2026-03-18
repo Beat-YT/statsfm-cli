@@ -732,38 +732,15 @@ def cmd_stream_stats(api: StatsAPI, args):
             print(f"Unique: {', '.join(parts)}")
 
 
-def range_to_timestamps(range_val: str) -> str:
-    """Convert any range alias to after=&before= timestamp params for the hourly endpoint."""
-    lower = range_val.lower()
-    # Duration ranges (days)
-    duration_map = {**DURATION_RANGES, "4w": 28, "4weeks": 28, "6m": 180, "6months": 180, "today": 1, "1d": 1}
-    if lower in duration_map:
-        return build_duration_params(duration_map[lower])
-    # Lifetime/all: use a very old start date
-    if lower in ("all", "lifetime"):
-        now_ms = int(datetime.now().timestamp() * 1000)
-        return f"after=1420070400000&before={now_ms}"  # Jan 1, 2015
-    # Default: 28 days
-    return build_duration_params(28)
-
-
 def cmd_hourly_breakdown(api: StatsAPI, args):
     """Show listening distribution by hour of day"""
     user = get_user_or_exit(args)
 
-    # Build timestamp params (hourly endpoint needs after/before in ms, not range=)
+    date_params = build_date_params(args)
     range_val = args.range if hasattr(args, 'range') and args.range else "4w"
-    if hasattr(args, 'start') and args.start:
-        after_ms = parse_date(args.start)
-        params = f"after={after_ms}"
-        if hasattr(args, 'end') and args.end:
-            before_ms = parse_date(args.end)
-            params += f"&before={before_ms}"
-    else:
-        params = range_to_timestamps(range_val)
 
     tz = get_local_timezone()
-    data = api.request(f"/users/{user}/streams/stats/dates?{params}&timeZone={tz}")
+    data = api.request(f"/users/{user}/streams/stats/dates?{date_params}&timeZone={tz}")
     items = data.get("items", {})
     hours = items.get("hours", {})
 
