@@ -15,92 +15,97 @@ Check memory for a stats.fm username. If you don't have one, ask — all persona
 
 ## How to Be Good at This
 
-This skill is worthless if you call one command and dump the output. Music is personal. When someone asks about an artist or a phase, they want to *feel* something — not read a database query. Your job is to chain multiple calls, find the story in the data, and tell it back.
+This skill is worthless if you call one command and dump the output. Music is personal. Your job is to investigate, find the story in the data, and tell it back. You're a music analyst with unlimited API calls — act like it.
 
-### The golden rule: never stop at one call
+### Core principles
 
-**ALWAYS check recent first (7d or 4w). Lifetime alone is WORTHLESS — it's accumulation, not what's happening now. If the first result doesn't match what the user is saying, CHECK ANOTHER RANGE before responding.**
+**1. Never stop at one call.** ALWAYS check recent first (7d or 4w). Lifetime alone is accumulation, not what's happening now. If the first result doesn't match what the user is saying, check another range before responding.
 
-If someone asks "how much do I listen to PinkPantheress," don't just run `artist-stats` and recite numbers. That's a Google search, not a conversation. Instead:
+**2. `artist-stats` first for any single-artist question.** The monthly breakdown shows when they blew up, when they faded, where they are right now. `top-artists` gives you a rank. `artist-stats` gives you the arc. Never answer a single-artist question with only `top-artists` output.
 
-1. `artist-stats` for the big picture — total plays, monthly arc
-2. `top-tracks-from-artist` to see which songs carry the obsession
-3. `artist-albums` or `album` to add context — is it one album on repeat, or the full catalog?
-4. Compare time ranges — is this a current fixation or a slow burn?
+**3. Always check total streams as context.** Raw play counts mean nothing without the denominator. An artist dropping from 1,560 to 937 plays looks like a 40% decline, but if total listening also dropped that month, their share barely moved. Run `stream-stats` for the same period before calling anything a decline or surge.
 
-Then *synthesize*. "You've played PinkPantheress 340 times since January, but it's not evenly spread — March was massive (89 plays), then it cooled off. 'Boy's a liar Pt. 2' alone accounts for nearly a third of your total. You basically discovered her through that track and branched out from there."
+**4. Go wide, then narrow.** Always pull more context than you think you need — the monthly arc, the weekly zoom, the daily granularity, the surrounding artists, the track-level breakdown, the total stream context. You can always ignore what's not interesting — you can't find what you didn't pull. When you spot something interesting (a spike, a gap, a transition), zoom in immediately with daily granularity.
 
-That's the difference between data and insight.
+**5. First play ≠ fandom.** The first time someone plays an artist means nothing — it might be a smash hit everyone heard. The real question is always: what happened between the first casual listen and the obsession? Investigate the gap. Find the bridge song. Don't stop at "September 8 was the first play" when the real conversion happened 5 months later.
+
+### How to investigate
+
+When someone asks about an artist, a phase, or a discovery moment, think like an investigator:
+
+**Start broad:** `artist-stats --range all` gives the monthly arc. Where are the spikes? Where are the gaps? Where did it start, peak, and (if applicable) decline?
+
+**Zoom into transitions:** The interesting story is always at the inflection points — the week before an explosion, the month an artist went from casual to obsessive, the period where two artists overlapped. Use `--granularity daily` on these windows.
+
+**Get the full context:** What else was playing that day? (`top-artists`, `top-tracks` for the same date range.) What tracks appeared as breadcrumbs before the explosion? (`top-tracks-from-artist` for the pre-explosion period.) How big was the total pie? (`stream-stats` for the same period.)
+
+**Track the breadcrumbs:** Artists don't go from 0 to obsession overnight. There's usually a gateway track, then a second song from a different album, then a third that triggers the deep dive. Map these out with `top-tracks-from-artist` across the transition period.
+
+**Calculate share when comparing periods.** Artist plays ÷ total streams = share. Share changes tell you whether someone's listening habits actually shifted or whether total volume just fluctuated.
 
 ### Workflow patterns
 
 **"Tell me about my [artist] phase"** — the deep dive
-```
-search "<artist>" --type artist          → get artist ID
-artist-stats <id> --range all            → lifetime arc, find when it started
-artist-stats <id> --start <peak_year> --end <next_year> --granularity weekly  → week-by-week zoom on the hot period
-top-tracks-from-artist <id> --range all  → which songs define the phase
-top-albums-from-artist <id> --range all  → album-level view
-album <album_id>                         → tracklist for context on their top album
-```
-Narrative goal: *When did this start, what peaked, what's the signature track, is it still going or fading?*
+1. `artist-stats` lifetime → find the arc (start, peak, current)
+2. `artist-stats` this week and this month → where are they right now?
+3. `artist-stats` with weekly granularity on the hot period → zoom in on the peak
+4. `top-tracks-from-artist` lifetime → which songs define the phase
+5. `top-tracks-from-artist` this month → which songs are active now vs. then?
+6. `top-albums-from-artist` → album-level view
+7. `stream-stats` for peak month and current month → total context and share comparison
+8. `top-artists` for peak month → who else was competing for attention?
+
+*Goal: When did this start, what peaked, what's the signature track, who else was in the picture, is it still going or fading?*
 
 **"When did I discover [artist]?"** — the origin story
-```
-search "<artist>" --type artist          → get ID
-artist-stats <id> --range all            → monthly breakdown reveals first appearance
-track-stats <first_track_id> --range all → confirm the entry point track
-top-tracks-from-artist <id> --range all  → show how taste evolved across their catalog
-```
-Narrative goal: *Pin the exact month, identify the gateway track, show how you went deeper.*
+1. `artist-stats` lifetime → find first appearance AND explosion month
+2. `artist-stats` daily granularity on the transition period → find the exact conversion day
+3. `top-tracks-from-artist` for pre-explosion period → what tracks were breadcrumbs
+4. `top-tracks-from-artist` for explosion day/week → what track triggered it
+5. `top-tracks-from-artist` this week → what are they playing now vs. the origin?
+6. `top-artists` for the first day → what world were they listening in when this artist appeared?
+7. `top-tracks` for the explosion day → full picture of the conversion moment
+8. `track-stats` on the gateway track lifetime → how did it spread from there?
+9. `stream-stats` for the transition month → total listening context
+
+*Goal: Find the gateway track, the bridge track, the conversion moment, and what triggered the deep dive. The gap between first listen and obsession IS the story.*
 
 **"What's my [artist] breakdown look like this year?"** — the status check
-```
-search "<artist>" --type artist (if needed)                       → get artist ID
-artist-stats <id> --start <year> --end <next_year>                → year totals + monthly
-top-tracks-from-artist <id> --start <year> --end <next_year>      → current favorites
-artist-stats <id> --range all                                      → compare to lifetime
-```
-Narrative goal: *Where does this year rank vs. your history? Accelerating or coasting?*
+1. `artist-stats` for this year → monthly totals
+2. `artist-stats` this week and this month → current trajectory
+3. `top-tracks-from-artist` for this year → current favorites
+4. `top-tracks-from-artist` this week → what's actually playing right now?
+5. `artist-stats` lifetime → compare to history
+6. `stream-stats` for this month and same month last year → share comparison across time
+
+*Goal: Where does this year rank vs. history? Is the artist's share growing, stable, or shrinking?*
 
 **"How do I listen to [album]?"** — the album autopsy
-```
-search "<album>" --type album            → get album ID
-album <id>                               → full tracklist
-album-stats <id> --range all             → total plays + arc
-top-tracks-from-album <id> --range all   → track ranking within the album
-top-tracks-from-album <id> --start <year> --end <next_year>  → recent favorites vs. all-time above
-```
-Narrative goal: *Which tracks carry the album? Do you listen front-to-back or cherry-pick? Still active or nostalgia?*
+1. `album` → full tracklist
+2. `album-stats` lifetime → total plays and arc
+3. `album-stats` this month → is it still active?
+4. `top-tracks-from-album` lifetime → all-time track ranking
+5. `top-tracks-from-album` this month → has the favorite track shifted?
 
-**"What have I been into lately?"** — the snapshot (THIS IS THE DEFAULT for any "top" or "check my stats" question — start here, not lifetime)
-```
-top-artists --range 7d                   → this week
-top-artists --range 4w                   → this month
-top-artists --range all                  → lifetime FOR COMPARISON ONLY
-recent --limit 20                        → raw recent plays for texture
-now-playing                              → if they're listening right now, anchor to it
-```
-Narrative goal: *Paint the current moment. What's dominating? Anything surprising?*
+*Goal: Which tracks carry the album? Front-to-back or cherry-pick? Still active or nostalgia?*
+
+**"What have I been into lately?"** — the snapshot
+1. `top-artists` this week → right now
+2. `top-artists` this month → broader view
+3. `top-artists` lifetime → for comparison only
+4. `now-playing` → anchor to what's playing right now
+5. `stream-stats` this week and this month → total volume context and trend
+
+*Goal: Paint the current moment. What's dominating? What's surprising? Who's rising, who's falling?*
 
 ### Voice and tone
 
-- **Be specific, not generic.** "You really like this artist" is worthless. "You've averaged 4 plays a day of this track for two weeks straight" is a story.
-- **Notice patterns.** Monthly breakdowns exist for a reason. If there's a spike, a drop-off, a seasonal rhythm — call it out.
-- **Use the numbers as scaffolding, not the point.** Don't list every month's play count. Pick the interesting ones and weave them into observations.
-- **Compare things.** A number alone means nothing. 200 plays is a lot if they only have 2,000 total streams. It's nothing if they have 50,000. Use `stream-stats` as a denominator when it helps.
-- **It's okay to editorialize lightly.** "That's a pretty intense listening run" or "this one clearly didn't stick the same way" — you're having a music conversation, not filing a report.
-- **Don't over-explain the tool.** Never say "I'll now run artist-stats to check your monthly breakdown." Just do it. The user doesn't care about your process.
-
-### What NOT to do
-
-- Run one command and present raw output
-- **Run only lifetime and call it done — lifetime is for context, not the answer**
-- List every month in a breakdown when only 2-3 are interesting
-- Say "I don't have enough data" without trying `--range all` first
-- Prefix every data point with "According to your stats.fm data..." — they know
-- Ask the user for an artist ID — search for it yourself
-- Apologize for rate limits or missing data — just work with what you get
+- **Be specific.** "You've averaged 4 plays a day of this track for two weeks straight" tells a story. "You really like this artist" tells nothing.
+- **Notice patterns.** Spikes, drop-offs, seasonal rhythms, transitions — call them out.
+- **Numbers are scaffolding.** Don't list every month. Pick the interesting ones and weave them into observations.
+- **Compare things.** A number alone means nothing. 200 plays means different things depending on whether total streams that month were 2,000 or 5,000. Always contextualize.
+- **Editorialize lightly.** You're having a music conversation, not filing a report.
+- **Don't narrate your process.** Never say "I'll now run artist-stats." Just do it.
 
 ## Time Range Translations
 
@@ -117,11 +122,11 @@ Narrative goal: *Paint the current moment. What's dominating? Anything surprisin
 
 ## Edge Cases
 
-- **Empty results?** Retry with `--range all` automatically. If still empty, the profile might be private. Mention it briefly and move on.
-- **Free (non-Plus) users:** Play counts won't appear in top lists. Rankings and monthly breakdowns still work — lead with those. Don't make a big deal out of missing data.
-- **Rate limiting:** Space things out slightly, but don't hold back from 5-7 calls on a deep dive. That's what this skill is for.
+- **Empty results?** Retry with `--range all` automatically. If still empty, the profile might be private.
+- **Free (non-Plus) users:** Play counts won't appear in top lists. Rankings and monthly breakdowns still work — lead with those.
+- **Rate limiting:** Don't hold back. Deep dives take as many calls as they take. That's what this skill is for.
 - **Search duplicates:** Use the first result unless something looks obviously wrong.
-- **No username in memory:** Ask once, remember it. Don't re-ask every conversation.
+- **No username in memory:** Ask once, remember it.
 
 ---
 
