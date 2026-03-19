@@ -313,7 +313,7 @@ DURATION_RANGES = {
 RANGE_HELP = "Time range: today/1d, 7d, 14d, 30d, 90d, 4w/4weeks (4 weeks), 6m/6months (6 months), all (lifetime)"
 
 
-def resolve_range(value: str) -> str | None:
+def resolve_range(value: str) -> Optional[str]:
     """Resolve a CLI range alias to the API range value, or None for duration ranges."""
     lower = value.lower()
     if lower in DURATION_RANGES:
@@ -334,7 +334,7 @@ def build_duration_params(days: int) -> str:
     return f"after={after_ms}&before={before_ms}"
 
 
-def range_to_params(value: str | None, default: str = "4w") -> str:
+def range_to_params(value: Optional[str], default: str = "4w") -> str:
     """Convert a range value to full query parameters string."""
     val = (value or default).lower()
     if val in DURATION_RANGES:
@@ -730,6 +730,30 @@ def cmd_stream_stats(api: StatsAPI, args):
             parts.append(f"{card['albums']:,} albums")
         if parts:
             print(f"Unique: {', '.join(parts)}")
+
+
+def cmd_listening_history(api: StatsAPI, args):
+    """Show listening history with monthly/weekly/daily breakdown"""
+    user = get_user_or_exit(args)
+
+    date_params = build_date_params(args, "lifetime")
+    tz = get_local_timezone()
+    days, total_count, total_ms = get_per_day_stats_with_totals(
+        api, f"/users/{user}/streams/stats/per-day?timeZone={quote(tz, safe='')}&{date_params}"
+    )
+
+    print(f"Total: {total_count:,} streams  ({format_time(total_ms)})")
+    print()
+
+    granularity = getattr(args, 'granularity', 'monthly') or 'monthly'
+    if granularity == 'daily':
+        show_daily_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'weekly':
+        show_weekly_breakdown(days, getattr(args, 'limit', None))
+    elif granularity == 'monthly':
+        show_monthly_breakdown(days, getattr(args, 'limit', None))
+    else:
+        show_yearly_breakdown(days, getattr(args, 'limit', None))
 
 
 def cmd_hourly_breakdown(api: StatsAPI, args):
@@ -1146,8 +1170,8 @@ Set STATSFM_USER environment variable for default user
     recent_parser.add_argument("--user", "-u", help="stats.fm username")
     recent_parser.add_argument("--no-album", dest="album", action="store_false", help="Hide album name")
 
-    # Artist stats command
-    artist_stats_parser = subparsers.add_parser("artist-stats", help="Show stats for a specific artist")
+    # Artist history command
+    artist_stats_parser = subparsers.add_parser("artist-history", aliases=["artist-stats"], help="Show history for a specific artist")
     artist_stats_parser.add_argument("artist_id", type=int, help="Artist ID")
     artist_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     artist_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -1156,8 +1180,8 @@ Set STATSFM_USER environment variable for default user
     artist_stats_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="monthly", help="Breakdown granularity (default: monthly)")
     artist_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
-    # Track stats command
-    track_stats_parser = subparsers.add_parser("track-stats", help="Show stats for a specific track")
+    # Track history command
+    track_stats_parser = subparsers.add_parser("track-history", aliases=["track-stats"], help="Show history for a specific track")
     track_stats_parser.add_argument("track_id", type=int, help="Track ID")
     track_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     track_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -1166,8 +1190,8 @@ Set STATSFM_USER environment variable for default user
     track_stats_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="monthly", help="Breakdown granularity (default: monthly)")
     track_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
-    # Album stats command
-    album_stats_parser = subparsers.add_parser("album-stats", help="Show stats for a specific album")
+    # Album history command
+    album_stats_parser = subparsers.add_parser("album-history", aliases=["album-stats"], help="Show history for a specific album")
     album_stats_parser.add_argument("album_id", type=int, help="Album ID")
     album_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     album_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
@@ -1175,6 +1199,15 @@ Set STATSFM_USER environment variable for default user
     album_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
     album_stats_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="monthly", help="Breakdown granularity (default: monthly)")
     album_stats_parser.add_argument("--user", "-u", help="stats.fm username")
+
+    # Listening history command
+    history_parser = subparsers.add_parser("listening-history", aliases=["history"], help="Show listening history with monthly/weekly/daily breakdown")
+    history_parser.add_argument("--range", "-r", help=RANGE_HELP)
+    history_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
+    history_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
+    history_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="yearly", help="Breakdown granularity")
+    history_parser.add_argument("--limit", "-l", type=int, help="Max results")
+    history_parser.add_argument("--user", "-u", help="stats.fm username")
 
     # Stream stats command
     stream_stats_parser = subparsers.add_parser("stream-stats", help="Show overall stream statistics")
@@ -1274,9 +1307,14 @@ Set STATSFM_USER environment variable for default user
         "np": cmd_now_playing,
         "recent": cmd_recent,
         "artist-stats": cmd_artist_stats,
+        "artist-history": cmd_artist_stats,
         "track-stats": cmd_track_stats,
+        "track-history": cmd_track_stats,
         "album-stats": cmd_album_stats,
+        "album-history": cmd_album_stats,
         "stream-stats": cmd_stream_stats,
+        "listening-history": cmd_listening_history,
+        "history": cmd_listening_history,
         "hourly-breakdown": cmd_hourly_breakdown,
         "hourly": cmd_hourly_breakdown,
         "top-tracks-from-artist": cmd_top_tracks_from_artist,
