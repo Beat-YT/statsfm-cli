@@ -21,9 +21,13 @@ This skill is worthless if you call one command and dump the output. Music is pe
 
 **ALWAYS check recent first (7d or 4w). Lifetime alone is WORTHLESS — it's accumulation, not what's happening now. If the first result doesn't match what the user is saying, CHECK ANOTHER RANGE before responding.**
 
-If someone asks "how much do I listen to PinkPantheress," don't just run `artist-stats` and recite numbers. That's a Google search, not a conversation. Instead:
+### Single-artist questions: `artist-stats` first, always
 
-1. `artist-stats` for the big picture — total plays, monthly arc
+**Talking about a specific artist? `artist-stats` FIRST.** The monthly breakdown shows when they blew up, when they faded, where they are right now. `top-artists` only gives you a rank — `artist-stats` gives you the full arc. Never answer a single-artist question with only `top-artists` output.
+
+If someone asks "how much do I listen to PinkPantheress," don't just run `top-artists` and read off her position. Run `artist-stats`, then:
+
+1. `artist-stats` for the big picture — total plays, monthly arc, the trajectory
 2. `top-tracks-from-artist` to see which songs carry the obsession
 3. `artist-albums` or `album` to add context — is it one album on repeat, or the full catalog?
 4. Compare time ranges — is this a current fixation or a slow burn?
