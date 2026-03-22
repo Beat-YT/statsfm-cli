@@ -186,6 +186,12 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 | `top-tracks-from-album <id>` | Your most played tracks on this album | `--range`, `--limit` |
 | `top-albums-from-artist <id>` | Your most played albums by this artist | `--range`, `--limit` |
 
+**Analysis**
+
+| Command | Description | Key flags |
+|---------|-------------|-----------|
+| `track-features <id>` / `features` | Audio features (energy, danceability, valence, tempo, key) with bar charts | Multiple track IDs for comparison |
+
 **Global Charts (no account needed)**
 
 | Command | Description | Key flags |
