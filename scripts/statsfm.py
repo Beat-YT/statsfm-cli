@@ -756,6 +756,91 @@ def cmd_listening_history(api: StatsAPI, args):
         show_yearly_breakdown(days, getattr(args, 'limit', None))
 
 
+def cmd_first_listen(api: StatsAPI, args):
+    """Show first time a track/artist/album was played"""
+    user = get_user_or_exit(args)
+    entity_type = args.type
+    entity_id = args.entity_id
+    limit = getattr(args, 'limit', 5) or 5
+
+    if entity_type == "artist":
+        url = f"/users/{user}/streams/artists/{entity_id}?limit={limit}&order=asc"
+    elif entity_type == "track":
+        url = f"/users/{user}/streams/tracks/{entity_id}?limit={limit}&order=asc"
+    elif entity_type == "album":
+        url = f"/users/{user}/streams/albums/{entity_id}?limit={limit}&order=asc"
+    else:
+        print(f"Unknown type: {entity_type}")
+        sys.exit(1)
+
+    data = api.request(url)
+    items = data.get("items", [])
+
+    if not items:
+        print("No streams found.")
+        return
+
+    # Get entity name for header
+    if entity_type == "artist":
+        try:
+            artist_data = api.request(f"/artists/{entity_id}")
+            name = artist_data.get("item", {}).get("name", f"Artist #{entity_id}")
+        except Exception:
+            name = f"Artist #{entity_id}"
+    elif entity_type == "track":
+        try:
+            track_data = api.request(f"/tracks/{entity_id}")
+            track_info = track_data.get("item", {})
+            artists = ", ".join(a["name"] for a in track_info.get("artists", []))
+            name = f"{track_info.get('name', f'Track #{entity_id}')} by {artists}" if artists else track_info.get("name", f"Track #{entity_id}")
+        except Exception:
+            name = items[0].get("trackName", f"Track #{entity_id}")
+    elif entity_type == "album":
+        try:
+            album_data = api.request(f"/albums/{entity_id}")
+            name = album_data.get("item", {}).get("name", f"Album #{entity_id}")
+        except Exception:
+            name = f"Album #{entity_id}"
+
+    print(f"First streams: {name}")
+    print()
+
+    # Resolve album names for artist queries (not in streams response)
+    album_names = {}
+    if entity_type == "artist":
+        album_ids = list(set(str(s.get("albumId", "")) for s in items if s.get("albumId")))
+        if album_ids:
+            try:
+                ids_str = ",".join(album_ids)
+                albums_data = api.request(f"/albums/list?ids={ids_str}")
+                for a in albums_data.get("items", []):
+                    album_names[a["id"]] = a.get("name", "")
+            except Exception:
+                pass
+
+    for i, stream in enumerate(items, 1):
+        end_time = stream.get("endTime", "")
+        played_ms = stream.get("playedMs", 0)
+        track_name = stream.get("trackName", "Unknown")
+        album_name = album_names.get(stream.get("albumId"), "")
+
+        # Parse and convert to local time
+        if end_time:
+            dt = datetime.fromisoformat(end_time.replace("Z", "+00:00")).astimezone()
+            time_str = dt.strftime("%b %d, %Y at %I:%M %p")
+        else:
+            time_str = "Unknown"
+
+        duration = format_time(played_ms) if played_ms else "?"
+        if entity_type == "artist":
+            album_str = f"  [{album_name}]" if album_name else ""
+            print(f"  {i}. {track_name}{album_str}  —  {time_str}  ({duration})  #{stream.get('trackId', '')}")
+        elif entity_type == "album":
+            print(f"  {i}. {track_name}  —  {time_str}  ({duration})  #{stream.get('trackId', '')}")
+        else:
+            print(f"  {i}. {time_str}  ({duration})")
+
+
 def cmd_hourly_breakdown(api: StatsAPI, args):
     """Show listening distribution by hour of day"""
     user = get_user_or_exit(args)
@@ -1286,6 +1371,13 @@ Set STATSFM_USER environment variable for default user
     stream_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     stream_stats_parser.add_argument("--user", "-u", help="stats.fm username")
 
+    # First listen command
+    first_parser = subparsers.add_parser("first-listen", aliases=["first"], help="Show first time a track/artist/album was played")
+    first_parser.add_argument("type", choices=["artist", "track", "album"], help="Entity type")
+    first_parser.add_argument("entity_id", type=int, help="Entity ID")
+    first_parser.add_argument("--limit", "-l", type=int, default=5, help="Number of first streams to show (default: 5)")
+    first_parser.add_argument("--user", "-u", help="stats.fm username")
+
     # Hourly breakdown command
     hourly_parser = subparsers.add_parser("hourly-breakdown", help="Show listening distribution by hour of day")
     hourly_parser.add_argument("--range", "-r", help=RANGE_HELP)
@@ -1389,6 +1481,8 @@ Set STATSFM_USER environment variable for default user
         "stream-stats": cmd_stream_stats,
         "listening-history": cmd_listening_history,
         "history": cmd_listening_history,
+        "first-listen": cmd_first_listen,
+        "first": cmd_first_listen,
         "hourly-breakdown": cmd_hourly_breakdown,
         "hourly": cmd_hourly_breakdown,
         "top-tracks-from-artist": cmd_top_tracks_from_artist,
