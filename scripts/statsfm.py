@@ -1038,6 +1038,76 @@ def cmd_album(api: StatsAPI, args):
     print_table(rows)
 
 
+def cmd_track_features(api: StatsAPI, args):
+    """Show Spotify audio features for a track"""
+    track_ids = args.track_ids
+    results = []
+
+    KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+    # Batch fetch all track metadata in one call
+    ids_param = ",".join(str(tid) for tid in track_ids)
+    tracks_data = api.request(f"/tracks/list?ids={ids_param}")
+    tracks = tracks_data.get("items", [])
+
+    # Build lookup by track ID
+    track_map = {}
+    for t in tracks:
+        track_map[t.get("id")] = t
+
+    # Collect Spotify IDs and fetch audio features individually
+    # (stats.fm doesn't support batch audio features)
+    for track_id in track_ids:
+        track = track_map.get(track_id, {})
+        name = track.get("name", f"Track #{track_id}")
+        artists = ", ".join(a["name"] for a in track.get("artists", []))
+        spotify_ids = track.get("externalIds", {}).get("spotify", [])
+        if not spotify_ids:
+            print(f"{name}: no Spotify ID found")
+            continue
+
+        f_data = api.request(f"/SPOTIFY/audio-features/{spotify_ids[0]}")
+        f = f_data.get("item", {})
+        results.append((name, artists, f))
+
+    for name, artists, f in results:
+        if len(results) > 1:
+            print(f"\n{name}  by {artists}")
+            print("─" * 50)
+        else:
+            print(f"{name}  by {artists}\n")
+
+        def bar(val, width=20):
+            filled = int(round(val * width))
+            return "█" * filled + "░" * (width - filled)
+
+        energy = f.get("energy", 0)
+        dance = f.get("danceability", 0)
+        valence = f.get("valence", 0)
+        acoust = f.get("acousticness", 0)
+        speech = f.get("speechiness", 0)
+        liveness = f.get("liveness", 0)
+        tempo = f.get("tempo", 0)
+        loud = f.get("loudness", 0)
+        key = f.get("key", -1)
+        mode = f.get("mode", 1)
+        sig = f.get("time_signature", 4)
+
+        key_name = KEY_NAMES[key] if 0 <= key <= 11 else "?"
+        mode_name = "major" if mode == 1 else "minor"
+
+        print(f"  Energy      {bar(energy)} {energy:.2f}")
+        print(f"  Danceability{bar(dance)} {dance:.2f}")
+        print(f"  Valence     {bar(valence)} {valence:.2f}  ({'happy' if valence > 0.5 else 'sad'})")
+        print(f"  Acousticness{bar(acoust)} {acoust:.2f}")
+        print(f"  Speechiness {bar(speech)} {speech:.2f}")
+        print(f"  Liveness    {bar(liveness)} {liveness:.2f}")
+        print()
+        print(f"  Tempo    {tempo:.1f} BPM   Loudness {loud:.1f} dB")
+        print(f"  Key      {key_name} {mode_name}   Time sig {sig}/4")
+        print()
+
+
 def cmd_search(api: StatsAPI, args):
     """Search for artists, tracks, or albums"""
     if not args.query:
@@ -1281,6 +1351,10 @@ Set STATSFM_USER environment variable for default user
     album_parser = subparsers.add_parser("album", help="Show album info and tracklist")
     album_parser.add_argument("album_id", type=int, help="Album ID")
 
+    # Track features command
+    features_parser = subparsers.add_parser("track-features", aliases=["features"], help="Show Spotify audio features for a track")
+    features_parser.add_argument("track_ids", type=int, nargs="+", help="Track ID(s)")
+
     # Search command
     search_parser = subparsers.add_parser("search", help="Search for artists, tracks, or albums")
     search_parser.add_argument("query", help="Search query")
@@ -1326,6 +1400,8 @@ Set STATSFM_USER environment variable for default user
         "album": cmd_album,
         "artist": cmd_artist,
         "artist-albums": cmd_artist,
+        "track-features": cmd_track_features,
+        "features": cmd_track_features,
         "search": cmd_search,
     }
 
