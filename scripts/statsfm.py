@@ -1191,6 +1191,70 @@ def cmd_track_features(api: StatsAPI, args):
         print(f"  Tempo    {tempo:.1f} BPM   Loudness {loud:.1f} dB")
         print(f"  Key      {key_name} {mode_name}   Time sig {sig}/4")
         print()
+def cmd_album_breakdown(api: StatsAPI, args):
+    """Show per-track play counts for an album (your personal listening breakdown).
+
+    Uses two API calls: album tracklist + user top tracks from album.
+    Tracks with no plays show as 0 (visible gaps in listening).
+    """
+    user = get_user_or_exit(args)
+
+    album_data = api.request(f"/albums/{args.album_id}")
+    album = album_data.get("item", {})
+    album_name = album.get("name", "?")
+    artists = format_artists(album.get("artists", []))
+    release_ms = album.get("releaseDate", 0) or 0
+    year = datetime.fromtimestamp(release_ms / 1000).year if release_ms else "?"
+
+    tracks_data = api.request(f"/albums/{args.album_id}/tracks")
+    tracks = tracks_data.get("items", [])
+
+    if not tracks:
+        print("No tracks found.")
+        return
+
+    # Batch fetch: get all played tracks in one call
+    date_params = build_date_params(args)
+    played_data = api.request(f"/users/{user}/top/albums/{args.album_id}/tracks?{date_params}")
+    played_items = played_data.get("items", [])
+
+    # Build lookup: track_id -> {streams, playedMs}
+    played_map = {}
+    for item in played_items:
+        track = item.get("track", {})
+        tid = track.get("id")
+        if tid:
+            played_map[tid] = {
+                "streams": item.get("streams", 0) or 0,
+                "playedMs": item.get("playedMs", 0) or 0,
+            }
+
+    print(f"{album_name} by {artists}  ({year})  #{args.album_id}")
+    print(f"Listening breakdown for: {user}\n")
+
+    rows = []
+    total_plays = 0
+    total_ms = 0
+
+    for i, track in enumerate(tracks, 1):
+        track_id = track.get("id")
+        track_name = track.get("name", "?")
+        stats = played_map.get(track_id, {"streams": 0, "playedMs": 0})
+        plays = stats["streams"]
+        dur_ms = stats["playedMs"]
+        total_plays += plays
+        total_ms += dur_ms
+        rows.append((i, track_name, plays, dur_ms))
+
+    for i, name, plays, dur_ms in rows:
+        mins = dur_ms // 60000
+        h, m = divmod(mins, 60)
+        time_str = f"{h}h {m:02d}m" if h else f"{m}m" if mins else "—"
+        print(f"  {i:<3} {name:<40} {plays:>6,}  {time_str:>7}")
+
+    total_h = total_ms / 3600000
+    avg = total_plays / len(tracks) if tracks else 0
+    print(f"\n  Total: {total_plays:,} plays  |  {total_h:.0f}h listened  |  {avg:.1f} avg/track")
 
 
 def cmd_search(api: StatsAPI, args):
@@ -1448,6 +1512,11 @@ Set STATSFM_USER environment variable for default user
     features_parser.add_argument("track_ids", type=int, nargs="+", help="Track ID(s)")
 
     # Search command
+    breakdown_parser = subparsers.add_parser("album-breakdown", aliases=["breakdown"], help="Show per-track play counts for an album")
+    breakdown_parser.add_argument("album_id", type=int, help="Album ID (from 'album' or 'search' command)")
+    breakdown_parser.add_argument("--user", "-u", default=DEFAULT_USER, help="stats.fm username")
+    breakdown_parser.set_defaults(command="album-breakdown")
+
     search_parser = subparsers.add_parser("search", help="Search for artists, tracks, or albums")
     search_parser.add_argument("query", help="Search query")
     search_parser.add_argument("--type", "-t", choices=["artist", "track", "album"], help="Filter by type (omit to search all)")
@@ -1496,6 +1565,8 @@ Set STATSFM_USER environment variable for default user
         "artist-albums": cmd_artist,
         "track-features": cmd_track_features,
         "features": cmd_track_features,
+        "album-breakdown": cmd_album_breakdown,
+        "breakdown": cmd_album_breakdown,
         "search": cmd_search,
     }
 
