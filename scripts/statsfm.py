@@ -334,13 +334,6 @@ def build_duration_params(days: int) -> str:
     return f"after={after_ms}&before={before_ms}"
 
 
-def range_to_params(value: Optional[str], default: str = "4w") -> str:
-    """Convert a range value to full query parameters string."""
-    val = (value or default).lower()
-    if val in DURATION_RANGES:
-        return build_duration_params(DURATION_RANGES[val])
-    return f"range={resolve_range(val)}"
-
 
 def build_date_params(args, default_range: str = "4w") -> str:
     """Build date query parameters from args (range or start/end)
@@ -552,17 +545,20 @@ def cmd_now_playing(api: StatsAPI, args):
     artists = format_artists(track["artists"])
     name = track["name"]
     album = track["albums"][0]["name"] if track.get("albums") else "?"
+    album_id = track["albums"][0].get("id", "?") if track.get("albums") else "?"
     progress = item["progressMs"] // 1000
     duration = track["durationMs"] // 1000
     device = item.get("deviceName", "?")
-    icon = "▶" if item.get("isPlaying") else "⏸"
+    status = "playing" if item.get("isPlaying") else "paused"
     track_id = track.get("id", "?")
     artist_id = track["artists"][0].get("id", "?") if track.get("artists") else "?"
 
-    print(f"{icon} {name}")
-    print(f"   by {artists}  •  {album}")
-    print(f"   {progress//60}:{progress%60:02d} / {duration//60}:{duration%60:02d}  •  {device}")
-    print(f"   IDs: track={track_id}, artist={artist_id}")
+    print(f"Status: {status}")
+    print(f"Track: {name} (#{track_id})")
+    print(f"Artist: {artists} (#{artist_id})")
+    print(f"Album: {album} (#{album_id})")
+    print(f"Progress: {progress//60}:{progress%60:02d} / {duration//60}:{duration%60:02d}")
+    print(f"Device: {device}")
 
 
 def cmd_recent(api: StatsAPI, args):
@@ -959,10 +955,10 @@ def cmd_top_albums_from_artist(api: StatsAPI, args):
 
 def cmd_charts_top_tracks(api: StatsAPI, args):
     """Show global top tracks chart"""
-    params = range_to_params(args.range, "today")
+    date_params = build_date_params(args, "today")
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/charts/top/tracks?{params}")
+    data = api.request(f"/charts/top/tracks?{date_params}")
     items = data.get("items", [])[:limit]  # Apply limit in software
 
     if not items:
@@ -985,10 +981,10 @@ def cmd_charts_top_tracks(api: StatsAPI, args):
 
 def cmd_charts_top_artists(api: StatsAPI, args):
     """Show global top artists chart"""
-    params = range_to_params(args.range, "today")
+    date_params = build_date_params(args, "today")
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/charts/top/artists?{params}")
+    data = api.request(f"/charts/top/artists?{date_params}")
     items = data.get("items", [])[:limit]
 
     if not items:
@@ -1006,10 +1002,10 @@ def cmd_charts_top_artists(api: StatsAPI, args):
 
 def cmd_charts_top_albums(api: StatsAPI, args):
     """Show global top albums chart"""
-    params = range_to_params(args.range, "today")
+    date_params = build_date_params(args, "today")
     limit = args.limit or DEFAULT_LIMIT
 
-    data = api.request(f"/charts/top/albums?{params}")
+    data = api.request(f"/charts/top/albums?{date_params}")
     items = data.get("items", [])[:limit]
 
     if not items:
@@ -1214,7 +1210,7 @@ def cmd_album_breakdown(api: StatsAPI, args):
         return
 
     # Batch fetch: get all played tracks in one call
-    date_params = build_date_params(args)
+    date_params = build_date_params(args, "lifetime")
     played_data = api.request(f"/users/{user}/top/albums/{args.album_id}/tracks?{date_params}")
     played_items = played_data.get("items", [])
 
