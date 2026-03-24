@@ -193,6 +193,7 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 | Command | Description | Key flags |
 |---------|-------------|-----------|
 | `first-listen <id>` / `first` | Show first N streams for an artist, track, or album | `--type artist\|track\|album`, `--limit` |
+| `taste-shift` / `shift` | Compare 7d vs 4-week artist share — shows who's gaining/losing in your rotation | `--limit` |
 
 **Global Charts (no account needed)**
 

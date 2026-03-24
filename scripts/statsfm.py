@@ -1142,6 +1142,73 @@ def cmd_album_breakdown(api: StatsAPI, args):
     print(f"\n  Total: {total_plays:,} plays  |  {total_h:.0f}h listened  |  {avg:.1f} avg/track")
 
 
+def cmd_taste_shift(api: StatsAPI, args):
+    """Compare 7-day vs 4-week artist share to surface what's gaining or losing"""
+    user = get_user_or_exit(args)
+    limit = args.limit or 10
+
+    # 7-day window uses timestamps; 4-week uses API range parameter
+    week_params = build_duration_params(7)
+    month_params = "range=weeks"
+
+    def get_total(params):
+        data = api.request(f"/users/{user}/streams/stats?{params}")
+        stats = data.get("items", data.get("item", {}))
+        return stats.get("count", 0) or 0
+
+    week_total = get_total(week_params)
+    month_total = get_total(month_params)
+
+    if not week_total or not month_total:
+        print("Insufficient data for comparison.")
+        return
+
+    def get_artists(params):
+        data = api.request(f"/users/{user}/top/artists?{params}&limit=50")
+        return {item["artist"]["id"]: item for item in data.get("items", [])}
+
+    week_artists = get_artists(week_params)
+    month_artists = get_artists(month_params)
+
+    all_ids = set(week_artists.keys()) | set(month_artists.keys())
+
+    rows = []
+    for artist_id in all_ids:
+        w = week_artists.get(artist_id)
+        m = month_artists.get(artist_id)
+        name = (w or m)["artist"]["name"]
+        w_streams = w["streams"] if w else 0
+        m_streams = m["streams"] if m else 0
+        w_share = (w_streams / week_total * 100) if week_total else 0
+        m_share = (m_streams / month_total * 100) if month_total else 0
+        delta = w_share - m_share
+        rows.append((name, w_share, m_share, delta, w_streams))
+
+    rows.sort(key=lambda x: x[3], reverse=True)
+
+    gainers = [(n, w, m, d, s) for n, w, m, d, s in rows if d > 0.5][:limit]
+    losers = sorted([(n, w, m, d, s) for n, w, m, d, s in rows if d < -0.5], key=lambda x: x[3])[:limit]
+
+    print(f"Taste shift — 7d vs 4-week artist share")
+    print(f"7d: {week_total:,} streams  |  4w: {month_total:,} streams")
+    print()
+
+    if gainers:
+        print("↑ Gaining:")
+        for name, w_share, m_share, delta, w_s in gainers:
+            bar = "█" * max(1, int(w_share / 2))
+            print(f"  {name:<26}  {bar:<20}  {w_share:5.1f}%  (4w: {m_share:5.1f}%)  +{delta:.1f}pp")
+
+    if gainers and losers:
+        print()
+
+    if losers:
+        print("↓ Losing:")
+        for name, w_share, m_share, delta, w_s in losers:
+            bar = "█" * max(1, int(m_share / 2))
+            print(f"  {name:<26}  {bar:<20}  {w_share:5.1f}%  (4w: {m_share:5.1f}%)  {delta:.1f}pp")
+
+
 def cmd_search(api: StatsAPI, args):
     """Search for artists, tracks, or albums"""
     if not args.query:
@@ -1345,6 +1412,11 @@ Set STATSFM_USER environment variable for default user
     breakdown_parser.add_argument("--user", "-u", default=DEFAULT_USER, help="stats.fm username")
     breakdown_parser.set_defaults(command="album-breakdown")
 
+    # Taste shift command
+    taste_shift_parser = subparsers.add_parser("taste-shift", aliases=["shift"], help="Compare 7d vs 4-week artist share — shows who's gaining/losing")
+    taste_shift_parser.add_argument("--limit", "-l", type=int, default=10, help="Number of top movers to show per direction (default: 10)")
+    taste_shift_parser.add_argument("--user", "-u", help="stats.fm username")
+
     search_parser = subparsers.add_parser("search", help="Search for artists, tracks, or albums")
     search_parser.add_argument("query", help="Search query")
     search_parser.add_argument("--type", "-t", choices=["artist", "track", "album"], help="Filter by type (omit to search all)")
@@ -1387,6 +1459,8 @@ Set STATSFM_USER environment variable for default user
         "features": cmd_track_features,
         "album-breakdown": cmd_album_breakdown,
         "breakdown": cmd_album_breakdown,
+        "taste-shift": cmd_taste_shift,
+        "shift": cmd_taste_shift,
         "search": cmd_search,
     }
 
