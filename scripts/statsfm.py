@@ -586,6 +586,7 @@ def cmd_artist_stats(api: StatsAPI, args):
 def cmd_track_stats(api: StatsAPI, args):
     """Show stats for a specific track"""
     user = get_user_or_exit(args)
+    timezone = quote(get_local_timezone(), safe='')
 
     if not args.track_id:
         print("Error: Track ID required", file=sys.stderr)
@@ -596,15 +597,16 @@ def cmd_track_stats(api: StatsAPI, args):
     track = track_data.get("item", {})
     track_name = track.get("name", "?")
     artists = format_artists(track.get("artists", []))
-    album = get_album_name(track) if track.get("albums") else "?"
+    album = track["albums"][0] if track.get("albums") else {}
 
-    print(f"{track_name} by {artists}")
-    print(f"Album: {album}")
+    print(f"Track: {track_name}")
+    print(f"Artist: {artists}")
+    print(f"Album: {album.get("name")} (#{album.get("id")})")
     print()
 
     date_params = build_date_params(args, "lifetime")
     days, total_count, total_ms = get_per_day_stats_with_totals(
-        api, f"/users/{user}/streams/tracks/{args.track_id}/stats/per-day?timeZone={quote(get_local_timezone(), safe='')}&{date_params}"
+        api, f"/users/{user}/streams/tracks/{args.track_id}/stats/per-day?timeZone={timezone}&{date_params}"
     )
 
     print(f"Total: {total_count} plays  ({format_time(total_ms)})")
@@ -1076,6 +1078,8 @@ def cmd_track_features(api: StatsAPI, args):
         print(f"  Tempo    {tempo:.1f} BPM   Loudness {loud:.1f} dB")
         print(f"  Key      {key_name} {mode_name}   Time sig {sig}/4")
         print()
+
+
 def cmd_album_breakdown(api: StatsAPI, args):
     """Show per-track play counts for an album (your personal listening breakdown).
 
@@ -1319,12 +1323,6 @@ Set STATSFM_USER environment variable for default user
     artist_parser.add_argument("--type", "-t", choices=["album", "single", "all"], default="all", help="Filter by type (default: all)")
     artist_parser.add_argument("--limit", "-l", type=int, help="Items per section (default: 15)")
 
-    # Alias
-    artist_albums_parser = subparsers.add_parser("artist-albums", help="Alias for artist")
-    artist_albums_parser.add_argument("artist_id", type=int, help="Artist ID")
-    artist_albums_parser.add_argument("--type", "-t", choices=["album", "single", "all"], default="all", help="Filter by type (default: all)")
-    artist_albums_parser.add_argument("--limit", "-l", type=int, help="Items per section (default: 15)")
-
     # Charts command (global top tracks/artists/albums)
     charts_parser = subparsers.add_parser("charts", help="Show global top charts")
     charts_parser.add_argument("type", choices=["tracks", "artists", "albums"], help="What to show")
@@ -1382,7 +1380,6 @@ Set STATSFM_USER environment variable for default user
         "charts": cmd_charts,
         "album": cmd_album,
         "artist": cmd_artist,
-        "artist-albums": cmd_artist,
         "track-features": cmd_track_features,
         "features": cmd_track_features,
         "album-breakdown": cmd_album_breakdown,
