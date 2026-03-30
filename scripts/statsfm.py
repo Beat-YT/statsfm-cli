@@ -342,6 +342,32 @@ def build_duration_params(days: int) -> str:
 
 
 
+def reject_range_on_history(args, cmd: str) -> None:
+    """Raise an error if --range is used with a history command.
+
+    History commands (artist-history, track-history, album-history,
+    listening-history) produce a monthly/weekly/daily breakdown scoped
+    to whatever window --range describes.  That means a month boundary
+    that falls inside the window is only a *partial* month, which makes
+    the breakdown deeply misleading (e.g. "Feb: 10 plays" when the
+    window started Feb 28).
+
+    Use --start / --end to pin exact calendar boundaries instead.
+    """
+    if hasattr(args, 'range') and args.range:
+        import sys
+        print(
+            f"Error: --range is not allowed with {cmd}.\n"
+            f"  Using --range clips the window, so months near the boundary\n"
+            f"  only show partial data (e.g. the last day of a month).\n"
+            f"\n"
+            f"  Use --start / --end for accurate month comparisons:\n"
+            f"    --start 2026-02-01 --end 2026-02-28\n",
+            file=sys.stderr
+        )
+        sys.exit(1)
+
+
 def build_date_params(args, default_range: str = "4w") -> str:
     """Build date query parameters from args (range or start/end)
 
@@ -555,6 +581,7 @@ def cmd_recent(api: StatsAPI, args):
 
 def cmd_artist_stats(api: StatsAPI, args):
     """Show stats for a specific artist"""
+    reject_range_on_history(args, "artist-history")
     user = get_user_or_exit(args)
 
     artist_data = api.request(f"/artists/{args.artist_id}")
@@ -585,6 +612,7 @@ def cmd_artist_stats(api: StatsAPI, args):
 
 def cmd_track_stats(api: StatsAPI, args):
     """Show stats for a specific track"""
+    reject_range_on_history(args, "track-history")
     user = get_user_or_exit(args)
 
     if not args.track_id:
@@ -622,6 +650,7 @@ def cmd_track_stats(api: StatsAPI, args):
 
 def cmd_album_stats(api: StatsAPI, args):
     """Show stats for a specific album"""
+    reject_range_on_history(args, "album-history")
     user = get_user_or_exit(args)
 
     if not args.album_id:
@@ -681,6 +710,7 @@ def cmd_stream_stats(api: StatsAPI, args):
 
 def cmd_listening_history(api: StatsAPI, args):
     """Show listening history with monthly/weekly/daily breakdown"""
+    reject_range_on_history(args, "listening-history")
     user = get_user_or_exit(args)
 
     date_params = build_date_params(args, "lifetime")

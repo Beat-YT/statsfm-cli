@@ -35,7 +35,7 @@ This skill is worthless if you call one command and dump the output. Music is pe
 
 When someone asks about an artist, a phase, or a discovery moment, think like an investigator:
 
-**Start broad:** `artist-history --range all` gives the monthly arc. Where are the spikes? Where are the gaps? Where did it start, peak, and (if applicable) decline?
+**Start broad:** `artist-history <id>` (no date flags = lifetime) gives the monthly arc. Where are the spikes? Where are the gaps? Where did it start, peak, and (if applicable) decline?
 
 **Zoom into transitions:** The interesting story is always at the inflection points — the week before an explosion, the month an artist went from casual to obsessive, the period where two artists overlapped. Use `--granularity daily` on these windows.
 
@@ -117,10 +117,12 @@ When someone asks about an artist, a phase, or a discovery moment, think like an
 | "last year" | `--start 2024 --end 2025` |
 | "this month" | `--start 2025-03 --end 2025-04` (adjust to current month) |
 | "last summer" | `--start 2025-06 --end 2025-09` |
-| "lately" / "recently" | `--range 30d` (and maybe compare to `--range all`) |
-| "ever" / "all time" | `--range all` |
-| "this week" | `--range 7d` |
-| "when did I start" | `--range all` then read the monthly breakdown |
+| "lately" / "recently" | `--start YYYY-MM-01` for history; `--range 30d` for top/stream-stats |
+| "ever" / "all time" | omit date flags (defaults to lifetime) for history; `--range all` for top/stream-stats |
+| "this week" | `--range 7d` (top/stream-stats only); `--start`/`--end` for history |
+| "when did I start" | omit date flags on history — default is lifetime |
+
+> **Note:** `artist-history`, `track-history`, `album-history`, and `listening-history` **reject `--range`** entirely. Using `--range` clips the window, so a month boundary that falls inside the range shows only partial data (e.g. "Feb: 10 plays" when the window started Feb 28). Always use `--start` / `--end` for history commands.
 
 ## Edge Cases
 
@@ -166,10 +168,10 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 
 | Command | Description | Key flags |
 |---------|-------------|-----------|
-| `artist-history <id>` | Play count, time, breakdown for an artist | `--start/--end`, `--range`, `--granularity` |
-| `track-history <id>` | Play count, time, breakdown for a track | `--start/--end`, `--range`, `--granularity` |
-| `album-history <id>` | Play count, time, breakdown for an album | `--start/--end`, `--range`, `--granularity` |
-| `listening-history` | Total listening breakdown over time | `--start/--end`, `--range`, `--granularity` |
+| `artist-history <id>` | Play count, time, breakdown for an artist | `--start/--end`, `--granularity` (no --range) |
+| `track-history <id>` | Play count, time, breakdown for a track | `--start/--end`, `--granularity` (no --range) |
+| `album-history <id>` | Play count, time, breakdown for an album | `--start/--end`, `--granularity` (no --range) |
+| `listening-history` | Total listening breakdown over time | `--start/--end`, `--granularity` (no --range) |
 
 **Lookups (no account needed)**
 
