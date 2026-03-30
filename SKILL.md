@@ -122,7 +122,9 @@ When someone asks about an artist, a phase, or a discovery moment, think like an
 | "this week" | `--range 7d` (top/stream-stats only); `--start`/`--end` for history |
 | "when did I start" | omit date flags on history — default is lifetime |
 
-> **Note:** `artist-history`, `track-history`, `album-history`, and `listening-history` **reject `--range`** entirely. Using `--range` clips the window, so a month boundary that falls inside the range shows only partial data (e.g. "Feb: 10 plays" when the window started Feb 28). Always use `--start` / `--end` for history commands.
+> **Note:** `artist-history`, `track-history`, `album-history`, and `listening-history` enforce two guards:
+> 1. **`--range` is rejected.** Use `--start` / `--end` instead — `--range` clips the window and partial months appear in the breakdown.
+> 2. **Misaligned dates are rejected.** With `--granularity monthly`, `--start` must be the 1st of a month. With `--granularity weekly`, `--start` must be a Monday. With `--granularity yearly`, `--start` must be January. Each error message suggests the correct date.
 
 ## Edge Cases
 
