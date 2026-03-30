@@ -1,6 +1,6 @@
 ---
 name: statsfm
-description: Music data tool powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts without an account. With a stats.fm username, query personal Spotify listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
+description: Comprehensive Music data tool for Spotify and Apple Music, powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts without an account. With a stats.fm username, query personal Spotify listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
 ---
 
 # stats.fm Skill
