@@ -35,7 +35,7 @@ This skill is worthless if you call one command and dump the output. Music is pe
 
 When someone asks about an artist, a phase, or a discovery moment, think like an investigator:
 
-**Start broad:** `artist-history --range all` gives the monthly arc. Where are the spikes? Where are the gaps? Where did it start, peak, and (if applicable) decline?
+**Start broad:** `artist-history` (defaults to lifetime) gives the monthly arc. Where are the spikes? Where are the gaps? Where did it start, peak, and (if applicable) decline?
 
 **Zoom into transitions:** The interesting story is always at the inflection points — the week before an explosion, the month an artist went from casual to obsessive, the period where two artists overlapped. Use `--granularity daily` on these windows.
 
@@ -166,10 +166,12 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 
 | Command | Description | Key flags |
 |---------|-------------|-----------|
-| `artist-history <id>` | Play count, time, breakdown for an artist | `--start/--end`, `--range`, `--granularity` |
-| `track-history <id>` | Play count, time, breakdown for a track | `--start/--end`, `--range`, `--granularity` |
-| `album-history <id>` | Play count, time, breakdown for an album | `--start/--end`, `--range`, `--granularity` |
-| `listening-history` | Total listening breakdown over time | `--start/--end`, `--range`, `--granularity` |
+| `artist-history <id>` | Play count, time, breakdown for an artist | `--start/--end`, `--granularity` |
+| `track-history <id>` | Play count, time, breakdown for a track | `--start/--end`, `--granularity` |
+| `album-history <id>` | Play count, time, breakdown for an album | `--start/--end`, `--granularity` |
+| `listening-history` | Total listening breakdown over time | `--start/--end`, `--granularity` |
+
+> **Note:** History commands do NOT support `--range`. Use `--start/--end` for custom windows, or omit both to get lifetime. `--range` produces partial-month data at boundaries that looks misleadingly low.
 
 **Lookups (no account needed)**
 

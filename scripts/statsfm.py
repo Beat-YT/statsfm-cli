@@ -1259,7 +1259,6 @@ Set STATSFM_USER environment variable for default user
     # Artist history command
     artist_stats_parser = subparsers.add_parser("artist-history", aliases=["artist-stats"], help="Show history for a specific artist")
     artist_stats_parser.add_argument("artist_id", type=int, help="Artist ID")
-    artist_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     artist_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     artist_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
@@ -1269,7 +1268,6 @@ Set STATSFM_USER environment variable for default user
     # Track history command
     track_stats_parser = subparsers.add_parser("track-history", aliases=["track-stats"], help="Show history for a specific track")
     track_stats_parser.add_argument("track_id", type=int, help="Track ID")
-    track_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     track_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     track_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     track_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
@@ -1279,7 +1277,6 @@ Set STATSFM_USER environment variable for default user
     # Album history command
     album_stats_parser = subparsers.add_parser("album-history", aliases=["album-stats"], help="Show history for a specific album")
     album_stats_parser.add_argument("album_id", type=int, help="Album ID")
-    album_stats_parser.add_argument("--range", "-r", help=RANGE_HELP)
     album_stats_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     album_stats_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     album_stats_parser.add_argument("--limit", "-l", type=int, help="Limit to most recent N periods")
@@ -1288,7 +1285,6 @@ Set STATSFM_USER environment variable for default user
 
     # Listening history command
     history_parser = subparsers.add_parser("listening-history", aliases=["history"], help="Show listening history with monthly/weekly/daily breakdown")
-    history_parser.add_argument("--range", "-r", help=RANGE_HELP)
     history_parser.add_argument("--start", help="Start date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     history_parser.add_argument("--end", help="End date (YYYY, YYYY-MM, or YYYY-MM-DD)")
     history_parser.add_argument("--granularity", "-g", choices=["daily", "weekly", "monthly", "yearly"], default="yearly", help="Breakdown granularity")
