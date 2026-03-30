@@ -150,7 +150,7 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 |---------|-------------|
 | `profile` | Username, pronouns, bio, Plus status, Spotify sync info |
 | `now-playing` / `np` | Currently playing track |
-| `recent` | Recently played tracks |
+| `recent` | Recently played tracks (includes now-playing at top if active) |
 | `stream-stats` | Overall summary: total streams, time, averages, unique counts |
 
 **Your Top Lists**
@@ -179,6 +179,7 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 |---------|-------------|-----------|
 | `search <query>` | Find artists, tracks, or albums | `--type artist\|track\|album` |
 | `artist <id>` | Artist info, genres, popularity, discography | `--type album\|single\|all`, `--limit` |
+| `track <id>` | Track info: name, all artists (with IDs), album (with ID), duration | |
 | `album <id>` | Album info and full tracklist | |
 | `artist-albums <id>` | Discography grouped by type, newest first | `--type album\|single\|all`, `--limit` |
 

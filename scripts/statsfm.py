@@ -515,7 +515,7 @@ def cmd_now_playing(api: StatsAPI, args):
 
 
 def cmd_recent(api: StatsAPI, args):
-    """Show recently played tracks"""
+    """Show recently played tracks, with now-playing at the top if active"""
     user = args.user or DEFAULT_USER
     if not user:
         print("Error: No user specified. Set STATSFM_USER or pass --user", file=sys.stderr)
@@ -524,15 +524,26 @@ def cmd_recent(api: StatsAPI, args):
 
     limit = args.limit or DEFAULT_LIMIT
 
+    # Check now playing
+    np_data = api.request(f"/users/{user}/streams/current")
+    np_item = np_data.get("item")
+
+    rows = []
+    if np_item:
+        track = np_item["track"]
+        label = "NOW" if np_item.get("isPlaying") else "PAUSED"
+        album = get_album_name(track)[:25]
+        row = [label, track.get("name", "?"), track.get("artists", [{}])[0].get("name", "?"), album, f"#{track.get('id', '?')}"]
+        rows.append(row)
+
     data = api.request(f"/users/{user}/streams/recent")
     all_items = data.get("items", [])
     items = all_items[:limit]
 
-    if not items:
+    if not items and not np_item:
         print("No recent streams found.")
         return
 
-    rows = []
     for stream in items:
         track = stream.get("track", {})
         end_time = stream.get("endTime", "")
@@ -545,7 +556,8 @@ def cmd_recent(api: StatsAPI, args):
         else:
             time_str = "??:??"
 
-        row = [time_str, track.get("name", "?"), track.get("artists", [{}])[0].get("name", "?"), get_album_name(track)]
+        album = get_album_name(track)[:25]
+        row = [time_str, track.get("name", "?"), track.get("artists", [{}])[0].get("name", "?"), album, f"#{track.get('id', '?')}"]
         rows.append(row)
     print_table(rows)
     remaining = len(all_items) - limit
@@ -1010,6 +1022,30 @@ def cmd_album(api: StatsAPI, args):
     print_table(rows)
 
 
+def cmd_track(api: StatsAPI, args):
+    """Show track info"""
+    data = api.request(f"/tracks/{args.track_id}")
+    track = data.get("item", {})
+
+    name = track.get("name", "?")
+    album = track["albums"][0] if track.get("albums") else {}
+    album_name = album.get("name", "?")
+    album_id = album.get("id", "?")
+    duration = track.get("durationMs", 0)
+    explicit = " [E]" if track.get("explicit") else ""
+
+    spotify_ids = track.get("externalIds", {}).get("spotify", [])
+    spotify_url = f"https://open.spotify.com/track/{spotify_ids[0]}" if spotify_ids else None
+
+    print(f"{name}{explicit}  #{args.track_id}")
+    for a in track.get("artists", []):
+        print(f"Artist: {a.get('name', '?')}  #{a.get('id', '?')}")
+    print(f"Album: {album_name}  #{album_id}")
+    print(f"Duration: {format_duration(duration)}")
+    if spotify_url:
+        print(f"Spotify: {spotify_url}")
+
+
 def cmd_track_features(api: StatsAPI, args):
     """Show Spotify audio features for a track"""
     track_ids = args.track_ids
@@ -1329,6 +1365,10 @@ Set STATSFM_USER environment variable for default user
     album_parser = subparsers.add_parser("album", help="Show album info and tracklist")
     album_parser.add_argument("album_id", type=int, help="Album ID")
 
+    # Track lookup command
+    track_parser = subparsers.add_parser("track", help="Show track info")
+    track_parser.add_argument("track_id", type=int, help="Track ID")
+
     # Track features command
     features_parser = subparsers.add_parser("track-features", aliases=["features"], help="Show Spotify audio features for a track")
     features_parser.add_argument("track_ids", type=int, nargs="+", help="Track ID(s)")
@@ -1376,6 +1416,7 @@ Set STATSFM_USER environment variable for default user
         "charts": cmd_charts,
         "album": cmd_album,
         "artist": cmd_artist,
+        "track": cmd_track,
         "track-features": cmd_track_features,
         "features": cmd_track_features,
         "album-breakdown": cmd_album_breakdown,
