@@ -368,6 +368,87 @@ def reject_range_on_history(args, cmd: str) -> None:
         sys.exit(1)
 
 
+def check_granularity_alignment(args, cmd: str) -> None:
+    """Reject start/end dates that would produce partial periods at the chosen granularity.
+
+    Examples of what this catches:
+      --granularity monthly --start 2026-02-15  → Feb is only half a month
+      --granularity weekly  --start 2026-03-04  → Wed start = partial first week
+      --granularity yearly  --start 2026-03-01  → starts mid-year
+    """
+    import sys
+    from datetime import date, timedelta
+    import calendar
+
+    granularity = getattr(args, 'granularity', None) or 'monthly'
+    start = getattr(args, 'start', None)
+    end = getattr(args, 'end', None)
+
+    def check_bound(date_str: str, label: str) -> None:
+        parts = date_str.split('-') if date_str else []
+        if not parts:
+            return
+
+        if granularity == 'monthly':
+            if len(parts) == 3 and int(parts[2]) != 1:
+                last = calendar.monthrange(int(parts[0]), int(parts[1]))[1]
+                # Allow last day of month as an end bound
+                if label == 'end' and int(parts[2]) == last:
+                    return
+                suggestion = f"{parts[0]}-{parts[1]}-01"
+                print(
+                    f"Error: --{label} {date_str} is not aligned to a month boundary.\n"
+                    f"  With --granularity monthly a mid-month {label} creates a partial\n"
+                    f"  {'first' if label == 'start' else 'last'} month in the breakdown.\n"
+                    f"\n"
+                    f"  Use the 1st of the month:  --{label} {suggestion}\n",
+                    file=sys.stderr
+                )
+                sys.exit(1)
+
+        elif granularity == 'weekly':
+            if len(parts) == 3:
+                dt = date(int(parts[0]), int(parts[1]), int(parts[2]))
+                if dt.weekday() != 0:  # Monday = 0
+                    monday = dt - timedelta(days=dt.weekday())
+                    print(
+                        f"Error: --{label} {date_str} is not a Monday.\n"
+                        f"  With --granularity weekly a mid-week {label} creates a partial\n"
+                        f"  {'first' if label == 'start' else 'last'} week in the breakdown.\n"
+                        f"\n"
+                        f"  Use the nearest Monday:  --{label} {monday.isoformat()}\n",
+                        file=sys.stderr
+                    )
+                    sys.exit(1)
+
+        elif granularity == 'yearly':
+            if len(parts) >= 2 and int(parts[1]) != 1:
+                print(
+                    f"Error: --{label} {date_str} does not start in January.\n"
+                    f"  With --granularity yearly a mid-year {label} creates a partial\n"
+                    f"  {'first' if label == 'start' else 'last'} year in the breakdown.\n"
+                    f"\n"
+                    f"  Use January:  --{label} {parts[0]}\n",
+                    file=sys.stderr
+                )
+                sys.exit(1)
+            if len(parts) == 3 and (int(parts[1]) != 1 or int(parts[2]) != 1):
+                print(
+                    f"Error: --{label} {date_str} is not January 1st.\n"
+                    f"  With --granularity yearly a mid-year {label} creates a partial\n"
+                    f"  {'first' if label == 'start' else 'last'} year in the breakdown.\n"
+                    f"\n"
+                    f"  Use January 1st:  --{label} {parts[0]}\n",
+                    file=sys.stderr
+                )
+                sys.exit(1)
+
+    if start:
+        check_bound(start, 'start')
+    if end:
+        check_bound(end, 'end')
+
+
 def build_date_params(args, default_range: str = "4w") -> str:
     """Build date query parameters from args (range or start/end)
 
@@ -582,6 +663,7 @@ def cmd_recent(api: StatsAPI, args):
 def cmd_artist_stats(api: StatsAPI, args):
     """Show stats for a specific artist"""
     reject_range_on_history(args, "artist-history")
+    check_granularity_alignment(args, "artist-history")
     user = get_user_or_exit(args)
 
     artist_data = api.request(f"/artists/{args.artist_id}")
@@ -613,6 +695,7 @@ def cmd_artist_stats(api: StatsAPI, args):
 def cmd_track_stats(api: StatsAPI, args):
     """Show stats for a specific track"""
     reject_range_on_history(args, "track-history")
+    check_granularity_alignment(args, "track-history")
     user = get_user_or_exit(args)
 
     if not args.track_id:
@@ -651,6 +734,7 @@ def cmd_track_stats(api: StatsAPI, args):
 def cmd_album_stats(api: StatsAPI, args):
     """Show stats for a specific album"""
     reject_range_on_history(args, "album-history")
+    check_granularity_alignment(args, "album-history")
     user = get_user_or_exit(args)
 
     if not args.album_id:
@@ -711,6 +795,7 @@ def cmd_stream_stats(api: StatsAPI, args):
 def cmd_listening_history(api: StatsAPI, args):
     """Show listening history with monthly/weekly/daily breakdown"""
     reject_range_on_history(args, "listening-history")
+    check_granularity_alignment(args, "listening-history")
     user = get_user_or_exit(args)
 
     date_params = build_date_params(args, "lifetime")
