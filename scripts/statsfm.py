@@ -937,13 +937,9 @@ def cmd_artist(api: StatsAPI, args):
     popularity = artist.get("spotifyPopularity", 0)
 
     print(f"{name}  #{args.artist_id}")
-    info_parts = []
     if genres:
-        info_parts.append(genres)
-    info_parts.append(f"{follower_str} followers")
-    if popularity:
-        info_parts.append(f"popularity {popularity}")
-    print("  " + "  |  ".join(info_parts))
+        print(f"Genre: {genres}")
+    print(f"Followers: {follower_str}")
 
     albums_data = api.request(f"/artists/{args.artist_id}/albums?limit=500")
     items = albums_data.get("items", [])
@@ -959,7 +955,7 @@ def cmd_artist(api: StatsAPI, args):
     for a in unique:
         groups.setdefault(a.get("type", "other"), []).append(a)
 
-    album_type = getattr(args, 'type', 'all') or 'all'
+    album_type = getattr(args, 'type', 'album') or 'album'
     type_order = [("album", "Albums"), ("single", "Singles & EPs"), ("compilation", "Compilations")]
     show_types = type_order if album_type == "all" else [(album_type, dict(type_order)[album_type])]
     limit = args.limit or DEFAULT_LIMIT
@@ -994,13 +990,14 @@ def cmd_album(api: StatsAPI, args):
     label = album.get("label", "")
     genres = ", ".join(album.get("genres", []))
 
-    print(f"{name} by {artists}  #{args.album_id}")
-    info_parts = [release_date, f"{album.get('totalTracks', '?')} tracks"]
+    print(f"{name}  #{args.album_id}")
+    for a in album.get("artists", []):
+        print(f"Artist: {a.get('name', '?')}  #{a.get('id', '?')}")
+    print(f"Released: {release_date}  {album.get('totalTracks', '?')} tracks")
     if label:
-        info_parts.append(label)
+        print(f"Label: {label}")
     if genres:
-        info_parts.append(genres)
-    print("  " + "  |  ".join(info_parts))
+        print(f"Genre: {genres}")
     print()
 
     tracks_data = api.request(f"/albums/{args.album_id}/tracks")
@@ -1352,7 +1349,7 @@ Set STATSFM_USER environment variable for default user
     # Artist lookup command
     artist_parser = subparsers.add_parser("artist", help="Show artist info and discography")
     artist_parser.add_argument("artist_id", type=int, help="Artist ID")
-    artist_parser.add_argument("--type", "-t", choices=["album", "single", "all"], default="all", help="Filter by type (default: all)")
+    artist_parser.add_argument("--type", "-t", choices=["album", "single", "all"], default="album", help="Filter by type (default: album, use 'all' to include singles)")
     artist_parser.add_argument("--limit", "-l", type=int, help="Items per section (default: 15)")
 
     # Charts command (global top tracks/artists/albums)
