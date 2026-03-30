@@ -168,10 +168,10 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 
 | Command | Description | Key flags |
 |---------|-------------|-----------|
-| `artist-history <id>` | Play count, time, breakdown for an artist | `--start/--end`, `--granularity` (no --range) |
-| `track-history <id>` | Play count, time, breakdown for a track | `--start/--end`, `--granularity` (no --range) |
-| `album-history <id>` | Play count, time, breakdown for an album | `--start/--end`, `--granularity` (no --range) |
-| `listening-history` | Total listening breakdown over time | `--start/--end`, `--granularity` (no --range) |
+| `artist-history <id>` | Play count, time, breakdown for an artist | `--start/--end`, `--granularity` |
+| `track-history <id>` | Play count, time, breakdown for a track | `--start/--end`, `--granularity` |
+| `album-history <id>` | Play count, time, breakdown for an album | `--start/--end`, `--granularity` |
+| `listening-history` | Total listening breakdown over time | `--start/--end`, `--granularity` |
 
 **Lookups (no account needed)**
 
