@@ -613,7 +613,7 @@ def cmd_track_stats(api: StatsAPI, args):
 
     print(f"Track: {track_name}")
     print(f"Artist: {artists}")
-    print(f"Album: {album.get("name")} (#{album.get("id")})")
+    print(f"Album: {album.get('name')} (#{album.get('id')})")
     print()
 
     date_params = build_date_params(args, "lifetime")
