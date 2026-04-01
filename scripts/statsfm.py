@@ -16,7 +16,7 @@ if sys.stdout.encoding != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 if sys.stderr.encoding != "utf-8":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from urllib.parse import quote
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
@@ -116,7 +116,7 @@ def get_user_or_exit(args) -> str:
     return quote(user, safe='')
 
 
-def get_per_day_stats_with_totals(api: StatsAPI, endpoint: str) -> tuple[Dict[str, Any], int, int]:
+def get_per_day_stats_with_totals(api: StatsAPI, endpoint: str) -> Tuple[Dict[str, Any], int, int]:
     """Get per-day stats and calculate totals"""
     data = api.request(endpoint)
     days = data.get("items", {}).get("days", {})
