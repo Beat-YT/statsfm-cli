@@ -11,7 +11,7 @@ Query Spotify listening data through the stats.fm API. Personal stats, artist de
 
 ## Setup
 
-Check memory for a stats.fm username. If you don't have one, ask — all personal commands need `--user USERNAME` (`-u`). Public commands (search, album, artist-albums, charts) work without a username.
+Check memory for a stats.fm username. If you don't have one, ask — all personal commands need `--user USERNAME` (`-u`). Public commands (search, album, artist, charts) work without a username.
 
 ## How to Be Good at This
 
@@ -178,10 +178,9 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 | Command | Description | Key flags |
 |---------|-------------|-----------|
 | `search <query>` | Find artists, tracks, or albums | `--type artist\|track\|album` |
-| `artist <id>` | Artist info, genres, popularity, discography | `--type album\|single\|all`, `--limit` |
+| `artist <id>` | Artist profile + albums (use --type all for singles) | `--type`, `--limit` |
 | `track <id>` | Track info: name, all artists (with IDs), album (with ID), duration | |
 | `album <id>` | Album info and full tracklist | |
-| `artist-albums <id>` | Discography grouped by type, newest first | `--type album\|single\|all`, `--limit` |
 
 **Drill-Down (your stats within an artist/album)**
 
