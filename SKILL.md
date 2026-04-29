@@ -86,10 +86,11 @@ When someone asks about an artist, a phase, or a discovery moment, think like an
 1. `album` → full tracklist
 2. `album-history` lifetime → total plays and arc
 3. `album-history` this month → is it still active?
-4. `top tracks --from-album` lifetime → all-time track ranking
-5. `top tracks --from-album` this month → has the favorite track shifted?
+4. `album-breakdown` → per-track play counts in tracklist order, including 0-play tracks (the ideal command for this workflow — shows distribution and skipped tracks at a glance)
+5. `top tracks --from-album` lifetime → all-time track ranking by play count
+6. `top tracks --from-album` this month → has the favorite track shifted?
 
-*Goal: Which tracks carry the album? Front-to-back or cherry-pick? Still active or nostalgia?*
+*Goal: Which tracks carry the album? Front-to-back or cherry-pick? Which tracks get skipped? Still active or nostalgia?*
 
 **"What have I been into lately?"** — the snapshot
 1. `top artists` this week → right now
@@ -187,8 +188,9 @@ Global flags for all personal commands: `--user USERNAME` / `-u USERNAME`
 | Command | Description | Key flags |
 |---------|-------------|-----------|
 | `top tracks --from-artist ID` | Your most played tracks by this artist | `--range`, `--limit` |
-| `top tracks --from-album ID` | Your most played tracks on this album | `--range`, `--limit` |
+| `top tracks --from-album ID` | Your most played tracks on this album (played tracks only, sorted by play count) | `--range`, `--limit` |
 | `top albums --from-artist ID` | Your most played albums by this artist | `--range`, `--limit` |
+| `album-breakdown <id>` / `breakdown` | Per-track play counts for an album in tracklist order, including 0-play tracks; shows totals and avg/track | |
 
 **Discovery**
 
