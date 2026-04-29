@@ -83,12 +83,11 @@ When someone asks about an artist, a phase, or a discovery moment, think like an
 *Goal: Where does this year rank vs. history? Is the artist's share growing, stable, or shrinking?*
 
 **"How do I listen to [album]?"** — the album autopsy
-1. `album` → full tracklist
+1. `album-breakdown` → per-track play counts in tracklist order, including 0-play tracks (the backbone of this workflow — tracklist, distribution, and skipped tracks in one call)
 2. `album-history` lifetime → total plays and arc
 3. `album-history` this month → is it still active?
-4. `album-breakdown` → per-track play counts in tracklist order, including 0-play tracks (the ideal command for this workflow — shows distribution and skipped tracks at a glance)
-5. `top tracks --from-album` lifetime → all-time track ranking by play count
-6. `top tracks --from-album` this month → has the favorite track shifted?
+4. `top tracks --from-album` lifetime → all-time track ranking by play count
+5. `top tracks --from-album` this month → has the favorite track shifted?
 
 *Goal: Which tracks carry the album? Front-to-back or cherry-pick? Which tracks get skipped? Still active or nostalgia?*
 
